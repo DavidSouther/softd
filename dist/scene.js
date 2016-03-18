@@ -533,12 +533,31 @@
 	    }, {
 	        key: 'drawLine',
 	        value: function drawLine(p0, p1) {
-	            var dist = p1.sub(p0).length;
-	            if (dist < 2) return;
-	            var middle = p0.add(p1.sub(p0).scale(0.5));
-	            this.drawPoint(middle);
-	            this.drawLine(p0, middle);
-	            this.drawLine(middle, p1);
+	            var x0 = p0.x | 0;
+	            var y0 = p0.y | 0;
+	            var x1 = p1.x | 0;
+	            var y1 = p1.y | 0;
+	            var dx = Math.abs(x0 - x1);
+	            var dy = Math.abs(y0 - y1);
+	            var sx = x0 < x1 ? 1 : -1;
+	            var sy = y0 < y1 ? 1 : -1;
+	            var err = dx - dy;
+	            var e2 = void 0;
+	            while (true) {
+	                this.drawPoint(Vector_1.Vector.xyz(x0, y0, 0));
+	                if (x0 == x1 && y0 == y1) {
+	                    return;
+	                }
+	                e2 = 2 * err;
+	                if (e2 > -dy) {
+	                    err -= dy;
+	                    x0 += sx;
+	                }
+	                if (e2 < dx) {
+	                    err += dx;
+	                    y0 += sy;
+	                }
+	            }
 	        }
 	    }, {
 	        key: 'project',
