@@ -4,7 +4,7 @@ import { Vector } from './vector';
 const DEG_TO_HALF_RAD = Math.PI / 360;
 
 export class Camera {
-  private _position = Vector.xyz(0, 0, 20);
+  private _position = Vector.xyz(0, 0, 60);
   private _target = Vector.Zero;
   private _lookat: Matrix;
   private _projection: Matrix;

@@ -151,9 +151,29 @@ export class Matrix {
     const cr = Math.cos(roll);
     const sr = Math.cos(roll);
 
-    return new Matrix([1, 0, 0, 0, 0, cp, -sp, 0, 0, sp, cp, 0, 0, 0, 0, 1])
-      .mmul(new Matrix([cy, 0, sy, 0, 0, 1, 0, 0, -sy, 0, cy, 0, 0, 0, 0, 1]))
-      .mmul(new Matrix([cr, -sr, 0, 0, sr, cr, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]));
+    /*
+    return new Matrix([
+          1,  0,   0, 0,
+          0, cp, -sp, 0,
+          0, sp,  cp, 0,
+          0,  0,   0, 1])
+      .mmul(new Matrix([
+         cy,  0,  sy, 0,
+          0,  1,   0, 0,
+        -sy,  0,  cy, 0,
+          0,  0,   0, 1]))
+      .mmul(new Matrix([
+         cr, -sr,  0, 0,
+         sr,  cr,  0, 0,
+          0,   0,  1, 0,
+          0,   0,  0, 1]));
+          */
+    return new Matrix([
+       cy*cr, cp*sr + sp*sy*cr , sp*sr - cp*sy*cr, 0,
+      -cy*sr, cp*cr - sp*sy*sr , sp*cr + cp*sy*sr, 0,
+       sy   ,-sp*cy,   cp*cy, 0,
+       0, 0, 0, 1
+    ]);
   }
   
   static translation(p: Vector): Matrix {
@@ -165,16 +185,30 @@ export class Matrix {
     const xaxis = u.cross(zaxis).normalize();
     const yaxis = zaxis.cross(xaxis);
 
-    const zdotu = zaxis.dot(u);
-    const ydotu = yaxis.dot(u);
-    const xdotu = xaxis.dot(u);
-
+    /*
+    return Matrix.from([
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        -p.x, -p.y, -p.z, 1
+    ]).mmul(Matrix.from([
+        xaxis.x, yaxis.x, zaxis.x, 0,
+        xaxis.y, yaxis.y, zaxis.y, 0,
+        xaxis.z, yaxis.z, zaxis.z, 0,
+        0, 0, 0, 1
+    ]));
+    */  /*
+    const zdotp = zaxis.dot(p);
+    const ydotp = yaxis.dot(p);
+    const xdotp = xaxis.dot(p);
+    */
     return Matrix.from([
         xaxis.x, yaxis.x, zaxis.x, 0,
         xaxis.y, yaxis.y, zaxis.y, 0,
         xaxis.z, yaxis.z, zaxis.z, 0,
-        -xdotu, -ydotu, -zdotu, 1
-    ])
+        0, 0, 0, 1
+    ]);
+    /* */
   }
 
   private static _I = new Matrix();
