@@ -44,18 +44,40 @@ export class Device {
   }
 
   drawLine(p0: Vector, p1: Vector): void {
-    const dist = p1.sub(p0).length;
-    if(dist < 2) return;
-    const middle = p0.add(p1.sub(p0).scale(0.5));
-    this.drawPoint(middle);
-    this.drawLine(p0, middle);
-    this.drawLine(middle, p1);
+    let x0 = p0.x | 0;
+    let y0 = p0.y | 0;
+    const x1 = p1.x | 0;
+    const y1 = p1.y | 0;
+    const dx = Math.abs(x0 - x1);
+    const dy = Math.abs(y0 - y1);
+    const sx = (x0 < x1) ? 1 : -1;
+    const sy = (y0 < y1) ? 1 : -1;
+    let err = dx - dy;
+    let e2: number;
+
+    while (true) {
+      this.drawPoint(Vector.xyz(x0, y0, 0));
+
+      if ((x0 == x1) && (y0 == y1)) {
+        return;
+      }
+
+      e2 = 2 * err;
+      if (e2 > -dy) {
+        err -= dy;
+        x0 += sx;
+      }
+      if (e2 < dx) {
+        err += dx;
+        y0 += sy;
+      }
+    }
   }
 
   project(v: Vector, t: Matrix): Vector {
     let point = t.vmul(v);
-    const x = point.x * this.workingWidth/2 + this.workingWidth / 2.0;
-    const y = -point.y * this.workingHeight/2 + this.workingHeight / 2.0;
+    const x = point.x * this.workingWidth / 2 + this.workingWidth / 2.0;
+    const y = -point.y * this.workingHeight / 2 + this.workingHeight / 2.0;
     return Vector.xyz(x, y, 0);
   }
 
@@ -81,7 +103,7 @@ export class Device {
       transform = Matrix.pitchYawRoll(mesh.rotation)
                       .mmul(Matrix.translation(mesh.position))
                       .mmul(camera.matrix);
-      for(let f = 0; f < mesh.faces.length; f++) {
+      for (let f = 0; f < mesh.faces.length; f++) {
         face = mesh.faces[f];
         p0 = this.project(mesh.verticies[face.A], transform);
         p1 = this.project(mesh.verticies[face.B], transform);
