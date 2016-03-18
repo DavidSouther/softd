@@ -140,6 +140,43 @@ export class Matrix {
 
   static from(n: number[]): Matrix { return new Matrix(n); }
 
+  static pitchYawRoll(xyzEuler: Vector) {
+    const pitch = xyzEuler.x;
+    const yaw = xyzEuler.y;
+    const roll = xyzEuler.z;
+    const cp = Math.cos(pitch);
+    const sp = Math.sin(pitch);
+    const cy = Math.cos(yaw);
+    const sy = Math.sin(yaw);
+    const cr = Math.cos(roll);
+    const sr = Math.cos(roll);
+
+    return new Matrix([1, 0, 0, 0, 0, cp, -sp, 0, 0, sp, cp, 0, 0, 0, 0, 1])
+      .mmul(new Matrix([cy, 0, sy, 0, 0, 1, 0, 0, -sy, 0, cy, 0, 0, 0, 0, 1]))
+      .mmul(new Matrix([cr, -sr, 0, 0, sr, cr, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]));
+  }
+  
+  static translation(p: Vector): Matrix {
+    return new Matrix([1, 0, 0, p.x, 0, 1, 0, p.y, 0, 0, 1, p.z, 0, 0, 0, 1]);
+  }
+  
+  static lookAt(p: Vector, t: Vector, u: Vector = Vector.xyz(0, 1, 0)): Matrix {
+    const zaxis = t.sub(p).normalize();
+    const xaxis = u.cross(zaxis).normalize();
+    const yaxis = zaxis.cross(xaxis);
+
+    const zdotu = zaxis.dot(u);
+    const ydotu = yaxis.dot(u);
+    const xdotu = xaxis.dot(u);
+
+    return Matrix.from([
+        xaxis.x, yaxis.x, zaxis.x, 0,
+        xaxis.y, yaxis.y, zaxis.y, 0,
+        xaxis.z, yaxis.z, zaxis.z, 0,
+        -xdotu, -ydotu, -zdotu, 1
+    ])
+  }
+
   private static _I = new Matrix();
   static get Identity() { return Matrix._I; }
 }

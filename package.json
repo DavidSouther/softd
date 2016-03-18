@@ -2,13 +2,16 @@
   "name": "softd",
   "scripts": {
     "test": "mocha dist/**/*.spec.js",
-    "pretest": "tsc -p . && babel build -d dist"
+    "pretest": "tsc -p . && babel build -d dist",
+    "posttest": "webpack ./dist/src/scene.js ./dist/scene.js"
   },
   "devDependencies": {
     "chai": "^3.5.0",
     "mocha": "^2.4.5",
     "sinon": "^1.17.3",
     "sinon-chai": "^2.8.0",
-    "typescript": "^1.8.7"
+    "typescript": "^1.8.7",
+    "webpack": "^1.12.14",
+    "webpack-cli": "^1.0.0"
   }
 }
