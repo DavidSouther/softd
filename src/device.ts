@@ -43,7 +43,7 @@ export class Device {
     data[index + 3] = color.w * 255;
   }
 
-  drawLine(p0: Vector, p1: Vector): void {
+  drawLine(p0: Vector, p1: Vector, color: Vector): void {
     let x0 = p0.x | 0;
     let y0 = p0.y | 0;
     const x1 = p1.x | 0;
@@ -56,7 +56,7 @@ export class Device {
     let e2: number;
 
     while (true) {
-      this.drawPoint(Vector.xyz(x0, y0, 0));
+      this.drawPoint(Vector.xyz(x0, y0, 0), color);
 
       if ((x0 == x1) && (y0 == y1)) {
         return;
@@ -83,10 +83,10 @@ export class Device {
 
   static Yellow = new Vector([ 1, 1, 0, 1 ]);
   static Black = new Vector([ 0, 0, 0, 1 ]);
-  drawPoint(p: Vector): void {
+  drawPoint(p: Vector, color: Vector = Device.Yellow): void {
     if (p.x >= 0 && p.y >= 0 && p.x < this.workingWidth &&
         p.y < this.workingHeight) {
-      this.putPixel(p, Device.Yellow);
+      this.putPixel(p, color);
     }
   }
 
@@ -97,21 +97,28 @@ export class Device {
     let p0: Vector;
     let p1: Vector;
     let p2: Vector;
+    let vertex: Vector;
 
     for (let i = 0; i < meshes.length; i++) {
       mesh = meshes[i];
-      transform = Matrix.pitchYawRoll(mesh.rotation)
-                      .mmul(Matrix.translation(mesh.position))
-                      .mmul(camera.matrix);
-      for (let f = 0; f < mesh.faces.length; f++) {
-        face = mesh.faces[f];
-        p0 = this.project(mesh.verticies[face.A], transform);
-        p1 = this.project(mesh.verticies[face.B], transform);
-        p2 = this.project(mesh.verticies[face.C], transform);
+      transform = camera.matrix.mmul(mesh.matrix);
+      if (mesh.faces.length > 0) {
+        for (let f = 0; f < mesh.faces.length; f++) {
+          face = mesh.faces[f];
+          p0 = this.project(mesh.verticies[face.A], transform);
+          p1 = this.project(mesh.verticies[face.B], transform);
+          p2 = this.project(mesh.verticies[face.C], transform);
 
-        this.drawLine(p0, p1);
-        this.drawLine(p1, p2);
-        this.drawLine(p2, p0);
+          this.drawLine(p0, p1, mesh.color);
+          this.drawLine(p1, p2, mesh.color);
+          this.drawLine(p2, p0, mesh.color);
+        }
+      } else {
+        for (let v = 0; v < mesh.verticies.length - 1; v++) {
+          p0 = this.project(mesh.verticies[v], transform);
+          p1 = this.project(mesh.verticies[v+1], transform);
+          this.drawLine(p0, p1, mesh.color);
+        }
       }
     }
   }
