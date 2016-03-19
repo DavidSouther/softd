@@ -433,8 +433,15 @@
 	    }, {
 	        key: "scale",
 	        value: function scale(s) {
+	            var v = Vector.xyz(0, 0, 0);
+	            this.scalei(s, v);
+	            return v;
+	        }
+	    }, {
+	        key: "scalei",
+	        value: function scalei(s, i) {
 	            var v = this._array;
-	            return new Vector([v[0] * s, v[1] * s, v[2] * s, v[3] * s]);
+	            i.set(v[0] * s, v[1] * s, v[2] * s, v[3] * s);
 	        }
 	    }, {
 	        key: "normalize",
@@ -553,6 +560,19 @@
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 	var Vector_1 = __webpack_require__(5);
+	// Clamping values to keep them between 0 and 1
+	function clamp(value) {
+	    var min = arguments.length <= 1 || arguments[1] === undefined ? 0 : arguments[1];
+	    var max = arguments.length <= 2 || arguments[2] === undefined ? 1 : arguments[2];
+
+	    return Math.max(min, Math.min(value, max));
+	}
+	// Interpolating the value between 2 vertices
+	// min is the starting point, max the ending point
+	// and gradient the % between the 2 points
+	function interpolate(min, max, gradient) {
+	    return min + (max - min) * clamp(gradient);
+	}
 
 	var Device = function () {
 	    function Device(canvas) {
@@ -563,6 +583,7 @@
 	        this.workingWidth = canvas.width;
 	        this.workingHeight = canvas.height;
 	        this.workingContext = this.workingCanvas.getContext('2d');
+	        this.depthbuffer = new Array(this.workingWidth * this.workingHeight);
 	    }
 
 	    _createClass(Device, [{
@@ -572,6 +593,7 @@
 	            for (var i = 0; i < this.workingWidth * this.workingHeight; i++) {
 	                this.backbuffer[3 + i * 4] = 255;
 	            }
+	            this.depthbuffer.fill(Number.MAX_VALUE, 0, this.depthbuffer.length);
 	        }
 	    }, {
 	        key: 'present',
@@ -582,11 +604,16 @@
 	        key: 'putPixel',
 	        value: function putPixel(v, color) {
 	            var data = this.backbuffer;
-	            var index = ((v.x | 0) + (v.y | 0) * this.workingWidth) * 4;
-	            data[index + 0] = color.x * 255;
-	            data[index + 1] = color.y * 255;
-	            data[index + 2] = color.z * 255;
-	            data[index + 3] = color.w * 255;
+	            var index = (v.x | 0) + (v.y | 0) * this.workingWidth;
+	            var index4 = index * 4;
+	            if (this.depthbuffer[index] < v.z) {
+	                return;
+	            }
+	            this.depthbuffer[index] = v.z;
+	            data[index4 + 0] = color.x * 255;
+	            data[index4 + 1] = color.y * 255;
+	            data[index4 + 2] = color.z * 255;
+	            data[index4 + 3] = color.w * 255;
 	        }
 	    }, {
 	        key: 'drawLine',
@@ -623,7 +650,7 @@
 	            t.vmuli(v, i);
 	            var x = i.x * this.workingWidth / 2 + this.workingWidth / 2.0;
 	            var y = -i.y * this.workingHeight / 2 + this.workingHeight / 2.0;
-	            i.set(x, y, 0);
+	            i.set(x, y, v.z);
 	        }
 	    }, {
 	        key: 'drawPoint',
@@ -635,6 +662,75 @@
 	            }
 	        }
 	    }, {
+	        key: 'scanLine',
+	        value: function scanLine(y, pa, pb, pc, pd, color) {
+	            // Thanks to current Y, we can compute the gradient to compute others values
+	            // like the starting X (sx) and ending X (ex) to draw between if pa.Y ==
+	            // pb.Y or pc.Y == pd.Y, gradient is forced to 1
+	            var gradient1 = pa.y != pb.y ? (y - pa.y) / (pb.y - pa.y) : 1;
+	            var gradient2 = pc.y != pd.y ? (y - pc.y) / (pd.y - pc.y) : 1;
+	            var sx = interpolate(pa.x, pb.x, gradient1) | 0;
+	            var ex = interpolate(pc.x, pd.x, gradient2) | 0;
+	            var sz = interpolate(pa.z, pb.z, gradient1);
+	            var ez = interpolate(pc.z, pd.z, gradient2);
+	            // drawing a line from left (sx) to right (ex)
+	            for (var x = sx; x < ex; x++) {
+	                var zgrad = (x - sx) / (ex - sx);
+	                var z = interpolate(sz, ez, zgrad) * 100;
+	                this.drawPoint(this.v.set(x, y, z), color);
+	            }
+	        }
+	    }, {
+	        key: 'drawTriangle',
+	        value: function drawTriangle(p0, p1, p2, color) {
+	            // Sort triangles so that p0.y >= p1.y >= p2.y
+	            if (p0.y > p1.y) {
+	                var _ref = [p0, p1];
+	                p1 = _ref[0];
+	                p0 = _ref[1];
+	            }
+	            if (p1.y > p2.y) {
+	                var _ref2 = [p1, p2];
+	                p2 = _ref2[0];
+	                p1 = _ref2[1];
+	            }
+	            if (p0.y > p1.y) {
+	                var _ref3 = [p0, p1];
+	                p1 = _ref3[0];
+	                p0 = _ref3[1];
+	            }
+	            var dyp1p0 = p1.y - p0.y;
+	            var dyp2p0 = p2.y - p0.y;
+	            var dxp1p0 = p1.x - p0.x;
+	            var dxp2p0 = p2.x - p0.x;
+	            var mp0p1 = dyp1p0 > 0 ? dxp1p0 / dyp1p0 : 0;
+	            var mp0p2 = dyp2p0 > 0 ? dxp2p0 / dyp2p0 : 0;
+	            // First case, for:
+	            //
+	            //    P0
+	            //   |  \
+	            //   |   P1
+	            //   |  /
+	            //    P2
+	            if (mp0p1 > mp0p2) {
+	                for (var y = p0.y | 0; y <= (p2.y | 0); y++) {
+	                    if (y < p1.y) {
+	                        this.scanLine(y, p0, p2, p0, p1, color);
+	                    } else {
+	                        this.scanLine(y, p0, p2, p1, p2, color);
+	                    }
+	                }
+	            } else {
+	                for (var _y = p0.y | 0; _y <= (p2.y | 0); _y++) {
+	                    if (_y < p1.y) {
+	                        this.scanLine(_y, p0, p1, p0, p2, color);
+	                    } else {
+	                        this.scanLine(_y, p1, p2, p0, p2, color);
+	                    }
+	                }
+	            }
+	        }
+	    }, {
 	        key: 'render',
 	        value: function render(camera, meshes) {
 	            var transform = void 0;
@@ -643,7 +739,8 @@
 	            var p0 = Vector_1.Vector.xyz(0, 0, 0);
 	            var p1 = Vector_1.Vector.xyz(0, 0, 0);
 	            var p2 = Vector_1.Vector.xyz(0, 0, 0);
-	            var vertex = void 0;
+	            var color = Vector_1.Vector.xyz(0, 0, 0);
+	            var c = void 0;
 	            for (var i = 0; i < meshes.length; i++) {
 	                mesh = meshes[i];
 	                transform = camera.matrix.mmul(mesh.matrix);
@@ -653,9 +750,9 @@
 	                        this.project(mesh.verticies[face.A], transform, p0);
 	                        this.project(mesh.verticies[face.B], transform, p1);
 	                        this.project(mesh.verticies[face.C], transform, p2);
-	                        this.drawLine(p0, p1, mesh.color);
-	                        this.drawLine(p1, p2, mesh.color);
-	                        this.drawLine(p2, p0, mesh.color);
+	                        c = .25 + f % mesh.faces.length / mesh.faces.length * 0.75;
+	                        mesh.color.scalei(c, color);
+	                        this.drawTriangle(p0, p1, p2, color);
 	                    }
 	                } else {
 	                    for (var v = 0; v < mesh.verticies.length - 1; v++) {
@@ -729,8 +826,15 @@
 	    }, {
 	        key: "scale",
 	        value: function scale(s) {
+	            var v = Vector.xyz(0, 0, 0);
+	            this.scalei(s, v);
+	            return v;
+	        }
+	    }, {
+	        key: "scalei",
+	        value: function scalei(s, i) {
 	            var v = this._array;
-	            return new Vector([v[0] * s, v[1] * s, v[2] * s, v[3] * s]);
+	            i.set(v[0] * s, v[1] * s, v[2] * s, v[3] * s);
 	        }
 	    }, {
 	        key: "normalize",
