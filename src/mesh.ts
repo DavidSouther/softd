@@ -1,5 +1,6 @@
 import {Matrix} from './matrix';
 import {Vector} from './vector';
+import {SUZANNE} from './monkey';
 
 export interface Face {
   A: number;
@@ -85,5 +86,55 @@ export class Mesh {
     m.faces[11] = {A : 4, B : 6, C : 7};
 
     return m;
+  }
+
+  private static _monkey = Mesh.fromBabylon(SUZANNE);
+  static get Monkey(): Mesh[] { return Mesh._monkey; }
+
+  static fromBabylon(saved: any): Mesh[] {
+    const meshes: Mesh[] = [];
+    for (let m = 0; m < saved.meshes.length; m++) {
+      let data: any = saved.meshes[m];
+      let vArray: number[] = data.vertices;
+      let fArray: number[] = data.indices;
+
+      let uvCount: number = data.uvCount;
+      let vStep = 1;
+
+      switch (uvCount) {
+      case 0:
+        vStep = 6;
+        break;
+      case 1:
+        vStep = 8;
+        break;
+      case 2:
+        vStep = 10;
+        break;
+      }
+
+      let vCount = vArray.length / vStep;
+      let fCount = fArray.length / 3;
+
+      let mesh = new Mesh(data.name, vCount, fCount);
+
+      for (let i = 0; i < vCount; i++) {
+        let x = vArray[i * vStep];
+        let y = vArray[i * vStep + 1];
+        let z = vArray[i * vStep + 2];
+        mesh.verticies[i] = Vector.xyz(x, y, z);
+      };
+      for (let i = 0; i < fCount; i++) {
+        mesh.faces[i] = {
+          A: fArray[i * 3],
+          B: fArray[i * 3 + 1],
+          C: fArray[i * 3 + 2],
+        }
+      }
+      let pos = <number[]>data.position;
+      mesh.position = Vector.xyz(pos[0], pos[1], pos[2]);
+      meshes.push(mesh);
+    };
+    return meshes;
   }
 }
