@@ -93,6 +93,12 @@ export class Matrix {
   }
 
   vmul(v: Vector): Vector {
+    const i = Vector.xyz(0, 0, 0);
+    this.vmuli(v, i);
+    return i;
+  }
+
+  vmuli(v: Vector, i: Vector): void {
     const a = this._array;
     const a00 = a[0];
     const a01 = a[1];
@@ -117,12 +123,12 @@ export class Matrix {
     const bz = b[2];
     const bw = b[3];
 
-    return new Vector([
+    i.set(
       a00 * bx + a01 * by + a02 * bz + a03 * bw,
       a10 * bx + a11 * by + a12 * bz + a13 * bw,
       a20 * bx + a21 * by + a22 * bz + a23 * bw,
       a30 * bx + a31 * by + a32 * bz + a33 * bw
-    ]);
+    );
   }
 
   toArray(): number[][] {
