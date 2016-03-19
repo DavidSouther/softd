@@ -62,6 +62,13 @@ export class Vector {
   get y() { return this._array[1]; }
   get z() { return this._array[2]; }
   get w() { return this._array[3]; }
+  set(x: number, y: number, z: number, w: number = 0): Vector {
+    this._array[0] = x;
+    this._array[1] = y;
+    this._array[2] = z;
+    this._array[3] = w;
+    return this;
+  }
 
   private static _Zero = new Vector([ 0, 0, 0, 0 ]);
   static get Zero() { return Vector._Zero; }

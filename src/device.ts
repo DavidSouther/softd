@@ -4,6 +4,7 @@ import {Mesh, Face} from './Mesh';
 import {Vector} from './Vector';
 
 export class Device {
+  private v = Vector.xyz(0, 0, 0); // Scratch pad
   private backbuffer: Uint8ClampedArray;
   private workingCanvas: HTMLCanvasElement;
   private workingWidth: number;
@@ -56,7 +57,7 @@ export class Device {
     let e2: number;
 
     while (true) {
-      this.drawPoint(Vector.xyz(x0, y0, 0), color);
+      this.drawPoint(this.v.set(x0, y0, 0), color);
 
       if ((x0 == x1) && (y0 == y1)) {
         return;
