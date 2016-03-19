@@ -37,7 +37,13 @@ describe('Matrix', function() {
 
     it('vector multiplies', function() {
       expect(Matrix.Identity.vmul(Vector.I).toArray())
-        .to.deep.equal(Vector.I.toArray());
+          .to.deep.equal(Vector.I.toArray());
+    });
+  });
+  describe('rotation', function() {
+    it('creates the identity matrix with no rotations', function() {
+      //expect(Matrix.pitchYawRoll(Vector.Zero).toArray())
+      //    .to.deep.equal(Matrix.Identity.toArray());
     });
   });
 });

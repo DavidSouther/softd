@@ -20,9 +20,13 @@ export class Camera {
     this.updateProjection();
   }
 
+  private buildMatrix() {
+    this._matrix = this._projection.mmul(this._lookat);
+  }
+
   private updateLookat() {
     this._lookat = Matrix.lookAt(this._position, this._target);
-    this._matrix = this._lookat.mmul(this._projection);
+    this.buildMatrix();
   }
 
   private updateProjection() {
@@ -30,13 +34,16 @@ export class Camera {
     const sy = 1 / Math.tan(this._fov);
     const sx = sy / this._aspect;
 
+    const fpn = this._zfar + this._znear; 
+    const fn = this._zfar * this._znear;
+
     this._projection = new Matrix([
       sx, 0, 0, 0,
       0, sy, 0, 0,
-      0, 0, (this._zfar + this._znear) / f_n , -1,
-      0, 0, (2 * this._zfar * this._znear) / f_n, 0 
+      0, 0, -fpn/f_n , (2*fn) / f_n,
+      0, 0, 1, 0 
     ]);
-    this._matrix = this._lookat.mmul(this._projection);
+    this.buildMatrix();
   };
 
   get matrix() { return this._matrix; }

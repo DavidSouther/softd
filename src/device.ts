@@ -101,9 +101,7 @@ export class Device {
 
     for (let i = 0; i < meshes.length; i++) {
       mesh = meshes[i];
-      transform = Matrix.pitchYawRoll(mesh.rotation)
-                      .mmul(Matrix.translation(mesh.position))
-                      .mmul(camera.matrix);
+      transform = camera.matrix.mmul(mesh.matrix);
       if (mesh.faces.length > 0) {
         for (let f = 0; f < mesh.faces.length; f++) {
           face = mesh.faces[f];

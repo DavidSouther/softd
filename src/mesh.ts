@@ -1,3 +1,4 @@
+import {Matrix} from './matrix';
 import {Vector} from './vector';
 
 export interface Face {
@@ -7,35 +8,56 @@ export interface Face {
 }
 
 export class Mesh {
-  position = Vector.Zero;
-  rotation = Vector.Zero;
+  private _position = Vector.Zero;
+  private _rotation = Vector.Zero;
+  private _matrix: Matrix;
   verticies: Vector[];
   faces: Face[];
-  color: Vector = new Vector([0, 1, 1 ,1]);
+  color: Vector = new Vector([ 0, 1, 1, 1 ]);
 
   constructor(public name: string, vertCount: number, faceCount: number) {
     this.verticies = new Array(vertCount);
     this.faces = new Array(faceCount);
+    this.updateMatrix();
+  }
+
+  private updateMatrix() {
+    this._matrix = Matrix.pitchYawRoll(this._rotation)
+                       .mmul(Matrix.translation(this._position));
+  };
+
+  get matrix() { return this._matrix; }
+
+  get position() { return this._position; }
+  set position(p: Vector) {
+    this._position = p;
+    this.updateMatrix();
+  }
+
+  get rotation() { return this._rotation; }
+  set rotation(r: Vector) {
+    this._rotation = r;
+    this.updateMatrix();
   }
 
   static get Axes(): Mesh[] {
     const x = new Mesh("X Axis", 2, 0);
     x.verticies[0] = Vector.Zero;
     x.verticies[1] = Vector.xyz(1, 0, 0);
-    x.color = new Vector([1, 0, 0, 1]);
+    x.color = new Vector([ 1, 0, 0, 1 ]);
 
     const y = new Mesh("Y Axis", 2, 0);
     y.verticies[0] = Vector.Zero;
     y.verticies[1] = Vector.xyz(0, 1, 0);
-    y.color = new Vector([0, 1, 0, 1]);
+    y.color = new Vector([ 0, 1, 0, 1 ]);
 
     const z = new Mesh("Z Axis", 2, 0);
     z.verticies[0] = Vector.Zero;
     z.verticies[1] = Vector.xyz(0, 0, 1);
-    z.color = new Vector([0, 0, 1, 1]);
-    return [x, y, z];
+    z.color = new Vector([ 0, 0, 1, 1 ]);
+    return [ x, y, z ];
   }
-  
+
   static get Cube(): Mesh {
     const m = new Mesh("Cube", 8, 12);
     m.verticies[7] = (Vector.xyz(-1, -1, -1));
