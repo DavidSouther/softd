@@ -267,6 +267,13 @@
 	    }, {
 	        key: "vmul",
 	        value: function vmul(v) {
+	            var i = vector_1.Vector.xyz(0, 0, 0);
+	            this.vmuli(v, i);
+	            return i;
+	        }
+	    }, {
+	        key: "vmuli",
+	        value: function vmuli(v, i) {
 	            var a = this._array;
 	            var a00 = a[0];
 	            var a01 = a[1];
@@ -289,7 +296,7 @@
 	            var by = b[1];
 	            var bz = b[2];
 	            var bw = b[3];
-	            return new vector_1.Vector([a00 * bx + a01 * by + a02 * bz + a03 * bw, a10 * bx + a11 * by + a12 * bz + a13 * bw, a20 * bx + a21 * by + a22 * bz + a23 * bw, a30 * bx + a31 * by + a32 * bz + a33 * bw]);
+	            i.set(a00 * bx + a01 * by + a02 * bz + a03 * bw, a10 * bx + a11 * by + a12 * bz + a13 * bw, a20 * bx + a21 * by + a22 * bz + a23 * bw, a30 * bx + a31 * by + a32 * bz + a33 * bw);
 	        }
 	    }, {
 	        key: "toArray",
@@ -463,6 +470,17 @@
 	            return [a[0], a[1], a[2], a[3]];
 	        }
 	    }, {
+	        key: "set",
+	        value: function set(x, y, z) {
+	            var w = arguments.length <= 3 || arguments[3] === undefined ? 0 : arguments[3];
+
+	            this._array[0] = x;
+	            this._array[1] = y;
+	            this._array[2] = z;
+	            this._array[3] = w;
+	            return this;
+	        }
+	    }, {
 	        key: "length",
 	        get: function get() {
 	            return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z + this.w * this.w);
@@ -540,6 +558,7 @@
 	    function Device(canvas) {
 	        _classCallCheck(this, Device);
 
+	        this.v = Vector_1.Vector.xyz(0, 0, 0); // Scratch pad
 	        this.workingCanvas = canvas;
 	        this.workingWidth = canvas.width;
 	        this.workingHeight = canvas.height;
@@ -583,7 +602,7 @@
 	            var err = dx - dy;
 	            var e2 = void 0;
 	            while (true) {
-	                this.drawPoint(Vector_1.Vector.xyz(x0, y0, 0), color);
+	                this.drawPoint(this.v.set(x0, y0, 0), color);
 	                if (x0 == x1 && y0 == y1) {
 	                    return;
 	                }
@@ -600,11 +619,11 @@
 	        }
 	    }, {
 	        key: 'project',
-	        value: function project(v, t) {
-	            var point = t.vmul(v);
-	            var x = point.x * this.workingWidth / 2 + this.workingWidth / 2.0;
-	            var y = -point.y * this.workingHeight / 2 + this.workingHeight / 2.0;
-	            return Vector_1.Vector.xyz(x, y, 0);
+	        value: function project(v, t, i) {
+	            t.vmuli(v, i);
+	            var x = i.x * this.workingWidth / 2 + this.workingWidth / 2.0;
+	            var y = -i.y * this.workingHeight / 2 + this.workingHeight / 2.0;
+	            i.set(x, y, 0);
 	        }
 	    }, {
 	        key: 'drawPoint',
@@ -621,9 +640,9 @@
 	            var transform = void 0;
 	            var mesh = void 0;
 	            var face = void 0;
-	            var p0 = void 0;
-	            var p1 = void 0;
-	            var p2 = void 0;
+	            var p0 = Vector_1.Vector.xyz(0, 0, 0);
+	            var p1 = Vector_1.Vector.xyz(0, 0, 0);
+	            var p2 = Vector_1.Vector.xyz(0, 0, 0);
 	            var vertex = void 0;
 	            for (var i = 0; i < meshes.length; i++) {
 	                mesh = meshes[i];
@@ -631,17 +650,17 @@
 	                if (mesh.faces.length > 0) {
 	                    for (var f = 0; f < mesh.faces.length; f++) {
 	                        face = mesh.faces[f];
-	                        p0 = this.project(mesh.verticies[face.A], transform);
-	                        p1 = this.project(mesh.verticies[face.B], transform);
-	                        p2 = this.project(mesh.verticies[face.C], transform);
+	                        this.project(mesh.verticies[face.A], transform, p0);
+	                        this.project(mesh.verticies[face.B], transform, p1);
+	                        this.project(mesh.verticies[face.C], transform, p2);
 	                        this.drawLine(p0, p1, mesh.color);
 	                        this.drawLine(p1, p2, mesh.color);
 	                        this.drawLine(p2, p0, mesh.color);
 	                    }
 	                } else {
 	                    for (var v = 0; v < mesh.verticies.length - 1; v++) {
-	                        p0 = this.project(mesh.verticies[v], transform);
-	                        p1 = this.project(mesh.verticies[v + 1], transform);
+	                        this.project(mesh.verticies[v], transform, p0);
+	                        this.project(mesh.verticies[v + 1], transform, p1);
 	                        this.drawLine(p0, p1, mesh.color);
 	                    }
 	                }
@@ -745,6 +764,17 @@
 	        value: function toArray() {
 	            var a = this._array;
 	            return [a[0], a[1], a[2], a[3]];
+	        }
+	    }, {
+	        key: "set",
+	        value: function set(x, y, z) {
+	            var w = arguments.length <= 3 || arguments[3] === undefined ? 0 : arguments[3];
+
+	            this._array[0] = x;
+	            this._array[1] = y;
+	            this._array[2] = z;
+	            this._array[3] = w;
+	            return this;
 	        }
 	    }, {
 	        key: "length",
