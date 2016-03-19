@@ -4,6 +4,7 @@ import {Mesh, Face} from './Mesh';
 import {Vector} from './Vector';
 
 export class Device {
+  private v = Vector.xyz(0, 0, 0); // Scratch pad
   private backbuffer: Uint8ClampedArray;
   private workingCanvas: HTMLCanvasElement;
   private workingWidth: number;
@@ -56,7 +57,7 @@ export class Device {
     let e2: number;
 
     while (true) {
-      this.drawPoint(Vector.xyz(x0, y0, 0), color);
+      this.drawPoint(this.v.set(x0, y0, 0), color);
 
       if ((x0 == x1) && (y0 == y1)) {
         return;
@@ -74,11 +75,11 @@ export class Device {
     }
   }
 
-  project(v: Vector, t: Matrix): Vector {
-    let point = t.vmul(v);
-    const x = point.x * this.workingWidth / 2 + this.workingWidth / 2.0;
-    const y = -point.y * this.workingHeight / 2 + this.workingHeight / 2.0;
-    return Vector.xyz(x, y, 0);
+  project(v: Vector, t: Matrix, i: Vector): void {
+    t.vmuli(v, i);
+    const x = i.x * this.workingWidth / 2 + this.workingWidth / 2.0;
+    const y = -i.y * this.workingHeight / 2 + this.workingHeight / 2.0;
+    i.set(x, y, 0);
   }
 
   static Yellow = new Vector([ 1, 1, 0, 1 ]);
@@ -94,9 +95,9 @@ export class Device {
     let transform: Matrix;
     let mesh: Mesh;
     let face: Face;
-    let p0: Vector;
-    let p1: Vector;
-    let p2: Vector;
+    let p0 = Vector.xyz(0, 0, 0);
+    let p1 = Vector.xyz(0, 0, 0);
+    let p2 = Vector.xyz(0, 0, 0);
     let vertex: Vector;
 
     for (let i = 0; i < meshes.length; i++) {
@@ -105,9 +106,9 @@ export class Device {
       if (mesh.faces.length > 0) {
         for (let f = 0; f < mesh.faces.length; f++) {
           face = mesh.faces[f];
-          p0 = this.project(mesh.verticies[face.A], transform);
-          p1 = this.project(mesh.verticies[face.B], transform);
-          p2 = this.project(mesh.verticies[face.C], transform);
+          this.project(mesh.verticies[face.A], transform, p0);
+          this.project(mesh.verticies[face.B], transform, p1);
+          this.project(mesh.verticies[face.C], transform, p2);
 
           this.drawLine(p0, p1, mesh.color);
           this.drawLine(p1, p2, mesh.color);
@@ -115,8 +116,8 @@ export class Device {
         }
       } else {
         for (let v = 0; v < mesh.verticies.length - 1; v++) {
-          p0 = this.project(mesh.verticies[v], transform);
-          p1 = this.project(mesh.verticies[v+1], transform);
+          this.project(mesh.verticies[v], transform, p0);
+          this.project(mesh.verticies[v+1], transform, p1);
           this.drawLine(p0, p1, mesh.color);
         }
       }
