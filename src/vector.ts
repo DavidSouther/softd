@@ -22,8 +22,14 @@ export class Vector {
   }
 
   scale(s: number): Vector {
+    const v = Vector.xyz(0, 0, 0);	
+    this.scalei(s, v);
+    return v;
+  }
+
+  scalei(s: number, i: Vector): void {
     const v = this._array;
-    return new Vector([v[0]*s, v[1]*s, v[2]*s, v[3]*s]);
+    i.set(v[0]*s, v[1]*s, v[2]*s, v[3]*s);
   }
 
   normalize(): Vector {
