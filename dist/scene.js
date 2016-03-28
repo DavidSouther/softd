@@ -69,7 +69,7 @@
 	    device.reset();
 	    device.render(mera, meshes);
 	    device.present();
-	    meshes[0].rotation = meshes[0].rotation.add(vector_1.Vector.xyz(0.01, 0.01, 0));
+	    meshes[0].rotation = meshes[0].rotation.add(vector_1.Vector.xyz(0, 0.01, 0));
 	    requestAnimationFrame(renderLoop);
 	}
 	//# sourceMappingURL=scene.js.map
@@ -444,11 +444,18 @@
 	            i.set(v[0] * s, v[1] * s, v[2] * s, v[3] * s);
 	        }
 	    }, {
-	        key: "normalize",
-	        value: function normalize() {
+	        key: "normalizei",
+	        value: function normalizei() {
 	            var a = this._array;
 	            var l = this.length;
-	            return new Vector([a[0] / l, a[1] / l, a[2] / l, a[3] / l]);
+	            this.set(a[0] / l, a[1] / l, a[2] / l, a[3] / l);
+	        }
+	    }, {
+	        key: "normalize",
+	        value: function normalize() {
+	            var n = new Vector(this._array);
+	            n.normalizei();
+	            return n;
 	        }
 	    }, {
 	        key: "dot",
@@ -515,7 +522,7 @@
 	    }], [{
 	        key: "xyz",
 	        value: function xyz(x, y, z) {
-	            return new Vector([x, y, z, 0]);
+	            return new Vector([x, y, z, 1]);
 	        }
 	    }, {
 	        key: "Zero",
@@ -567,9 +574,8 @@
 
 	    return Math.max(min, Math.min(value, max));
 	}
-	// Interpolating the value between 2 vertices
-	// min is the starting point, max the ending point
-	// and gradient the % between the 2 points
+	// Interpolating the value between 2 vertices.  min is the starting point, max
+	// the ending point, and gradient the % between the 2 points
 	function interpolate(min, max, gradient) {
 	    return min + (max - min) * clamp(gradient);
 	}
@@ -579,6 +585,11 @@
 	        _classCallCheck(this, Device);
 
 	        this.v = Vector_1.Vector.xyz(0, 0, 0); // Scratch pad
+	        this.c = Vector_1.Vector.xyz(0, 0, 0); // Color scratch pad
+	        this.data = { y: 0, ndotla: 0, ndotlb: 0, ndotlc: 0, ndotld: 0 };
+	        this.light = {
+	            position: Vector_1.Vector.xyz(0, 10, 10)
+	        };
 	        this.workingCanvas = canvas;
 	        this.workingWidth = canvas.width;
 	        this.workingHeight = canvas.height;
@@ -646,11 +657,14 @@
 	        }
 	    }, {
 	        key: 'project',
-	        value: function project(v, t, i) {
-	            t.vmuli(v, i);
-	            var x = i.x * this.workingWidth / 2 + this.workingWidth / 2.0;
-	            var y = -i.y * this.workingHeight / 2 + this.workingHeight / 2.0;
-	            i.set(x, y, v.z);
+	        value: function project(v, t, w, i) {
+	            t.vmuli(v.position, i.position);
+	            var x = i.position.x * this.workingWidth / 2 + this.workingWidth / 2.0;
+	            var y = -i.position.y * this.workingHeight / 2 + this.workingHeight / 2.0;
+	            i.position.set(x, y, i.position.z, 0);
+	            w.vmuli(v.position, i.worldPosition);
+	            w.vmuli(v.normal, i.normal);
+	            i.normal.set(i.normal.x, i.normal.y, i.normal.z);
 	        }
 	    }, {
 	        key: 'drawPoint',
@@ -663,7 +677,12 @@
 	        }
 	    }, {
 	        key: 'scanLine',
-	        value: function scanLine(y, pa, pb, pc, pd, color) {
+	        value: function scanLine(va, vb, vc, vd, color) {
+	            var y = this.data.y;
+	            var pa = va.position;
+	            var pb = vb.position;
+	            var pc = vc.position;
+	            var pd = vd.position;
 	            // Thanks to current Y, we can compute the gradient to compute others values
 	            // like the starting X (sx) and ending X (ex) to draw between if pa.Y ==
 	            // pb.Y or pc.Y == pd.Y, gradient is forced to 1
@@ -677,28 +696,50 @@
 	            for (var x = sx; x < ex; x++) {
 	                var zgrad = (x - sx) / (ex - sx);
 	                var z = interpolate(sz, ez, zgrad) * 100;
-	                this.drawPoint(this.v.set(x, y, z), color);
+	                var ndotl = this.data.ndotla;
+	                this.drawPoint(this.v.set(x, y, z), this.c.set(color.x * ndotl, color.y * ndotl, color.z * ndotl, color.w));
 	            }
 	        }
 	    }, {
+	        key: 'computeNdotL',
+	        value: function computeNdotL(position, normal, light) {
+	            var direction = light.sub(position);
+	            normal.normalizei();
+	            direction.normalizei();
+	            var lighting = normal.dot(direction);
+	            return Math.max(0, lighting);
+	        }
+	    }, {
 	        key: 'drawTriangle',
-	        value: function drawTriangle(p0, p1, p2, color) {
-	            // Sort triangles so that p0.y >= p1.y >= p2.y
-	            if (p0.y > p1.y) {
-	                var _ref = [p0, p1];
-	                p1 = _ref[0];
-	                p0 = _ref[1];
+	        value: function drawTriangle(v0, v1, v2, color) {
+	            // Calculate lighting
+	            var face = v0.normal.add(v1.normal.add(v2.normal));
+	            face.scalei(1 / 3, face);
+	            var center = v0.worldPosition.add(v1.worldPosition.add(v2.worldPosition));
+	            center.scalei(1 / 3, center);
+	            this.data.ndotla = this.computeNdotL(center, face, this.light.position);
+	            if (this.data.ndotla <= 0) {
+	                return;
 	            }
-	            if (p1.y > p2.y) {
-	                var _ref2 = [p1, p2];
-	                p2 = _ref2[0];
-	                p1 = _ref2[1];
+	            // Sort triangles so that v0.y >= v1.y >= v2.y
+	            if (v0.position.y > v1.position.y) {
+	                var _ref = [v0, v1];
+	                v1 = _ref[0];
+	                v0 = _ref[1];
 	            }
-	            if (p0.y > p1.y) {
-	                var _ref3 = [p0, p1];
-	                p1 = _ref3[0];
-	                p0 = _ref3[1];
+	            if (v1.position.y > v2.position.y) {
+	                var _ref2 = [v1, v2];
+	                v2 = _ref2[0];
+	                v1 = _ref2[1];
 	            }
+	            if (v0.position.y > v1.position.y) {
+	                var _ref3 = [v0, v1];
+	                v1 = _ref3[0];
+	                v0 = _ref3[1];
+	            }
+	            var p0 = v0.position;
+	            var p1 = v1.position;
+	            var p2 = v2.position;
 	            var dyp1p0 = p1.y - p0.y;
 	            var dyp2p0 = p2.y - p0.y;
 	            var dxp1p0 = p1.x - p0.x;
@@ -715,17 +756,19 @@
 	            if (mp0p1 > mp0p2) {
 	                for (var y = p0.y | 0; y <= (p2.y | 0); y++) {
 	                    if (y < p1.y) {
-	                        this.scanLine(y, p0, p2, p0, p1, color);
+	                        this.data.y = y;
+	                        this.scanLine(v0, v2, v0, v1, color);
 	                    } else {
-	                        this.scanLine(y, p0, p2, p1, p2, color);
+	                        this.scanLine(v0, v2, v1, v2, color);
 	                    }
 	                }
 	            } else {
 	                for (var _y = p0.y | 0; _y <= (p2.y | 0); _y++) {
 	                    if (_y < p1.y) {
-	                        this.scanLine(_y, p0, p1, p0, p2, color);
+	                        this.data.y = _y;
+	                        this.scanLine(v0, v1, v0, v2, color);
 	                    } else {
-	                        this.scanLine(_y, p1, p2, p0, p2, color);
+	                        this.scanLine(v1, v2, v0, v2, color);
 	                    }
 	                }
 	            }
@@ -736,9 +779,21 @@
 	            var transform = void 0;
 	            var mesh = void 0;
 	            var face = void 0;
-	            var p0 = Vector_1.Vector.xyz(0, 0, 0);
-	            var p1 = Vector_1.Vector.xyz(0, 0, 0);
-	            var p2 = Vector_1.Vector.xyz(0, 0, 0);
+	            var p0 = {
+	                position: Vector_1.Vector.xyz(0, 0, 0),
+	                normal: Vector_1.Vector.xyz(0, 0, 0),
+	                worldPosition: Vector_1.Vector.xyz(0, 0, 0)
+	            };
+	            var p1 = {
+	                position: Vector_1.Vector.xyz(0, 0, 0),
+	                normal: Vector_1.Vector.xyz(0, 0, 0),
+	                worldPosition: Vector_1.Vector.xyz(0, 0, 0)
+	            };
+	            var p2 = {
+	                position: Vector_1.Vector.xyz(0, 0, 0),
+	                normal: Vector_1.Vector.xyz(0, 0, 0),
+	                worldPosition: Vector_1.Vector.xyz(0, 0, 0)
+	            };
 	            var color = Vector_1.Vector.xyz(0, 0, 0);
 	            var c = void 0;
 	            for (var i = 0; i < meshes.length; i++) {
@@ -747,18 +802,19 @@
 	                if (mesh.faces.length > 0) {
 	                    for (var f = 0; f < mesh.faces.length; f++) {
 	                        face = mesh.faces[f];
-	                        this.project(mesh.verticies[face.A], transform, p0);
-	                        this.project(mesh.verticies[face.B], transform, p1);
-	                        this.project(mesh.verticies[face.C], transform, p2);
+	                        this.project(mesh.vertices[face.A], transform, camera.matrix, p0);
+	                        this.project(mesh.vertices[face.B], transform, camera.matrix, p1);
+	                        this.project(mesh.vertices[face.C], transform, camera.matrix, p2);
 	                        c = .25 + f % mesh.faces.length / mesh.faces.length * 0.75;
 	                        mesh.color.scalei(c, color);
+	                        color.set(color.x, color.y, color.z, mesh.color.w);
 	                        this.drawTriangle(p0, p1, p2, color);
 	                    }
 	                } else {
-	                    for (var v = 0; v < mesh.verticies.length - 1; v++) {
-	                        this.project(mesh.verticies[v], transform, p0);
-	                        this.project(mesh.verticies[v + 1], transform, p1);
-	                        this.drawLine(p0, p1, mesh.color);
+	                    for (var v = 0; v < mesh.vertices.length - 1; v++) {
+	                        this.project(mesh.vertices[v], transform, camera.matrix, p0);
+	                        this.project(mesh.vertices[v + 1], transform, camera.matrix, p1);
+	                        this.drawLine(p0.position, p1.position, mesh.color);
 	                    }
 	                }
 	            }
@@ -837,11 +893,18 @@
 	            i.set(v[0] * s, v[1] * s, v[2] * s, v[3] * s);
 	        }
 	    }, {
-	        key: "normalize",
-	        value: function normalize() {
+	        key: "normalizei",
+	        value: function normalizei() {
 	            var a = this._array;
 	            var l = this.length;
-	            return new Vector([a[0] / l, a[1] / l, a[2] / l, a[3] / l]);
+	            this.set(a[0] / l, a[1] / l, a[2] / l, a[3] / l);
+	        }
+	    }, {
+	        key: "normalize",
+	        value: function normalize() {
+	            var n = new Vector(this._array);
+	            n.normalizei();
+	            return n;
 	        }
 	    }, {
 	        key: "dot",
@@ -908,7 +971,7 @@
 	    }], [{
 	        key: "xyz",
 	        value: function xyz(x, y, z) {
-	            return new Vector([x, y, z, 0]);
+	            return new Vector([x, y, z, 1]);
 	        }
 	    }, {
 	        key: "Zero",
@@ -963,8 +1026,8 @@
 	        this.name = name;
 	        this._position = vector_1.Vector.Zero;
 	        this._rotation = vector_1.Vector.Zero;
-	        this.color = new vector_1.Vector([0, 1, 1, 1]);
-	        this.verticies = new Array(vertCount);
+	        this.color = new vector_1.Vector([1, 1, 1, 1]);
+	        this.vertices = new Array(vertCount);
 	        this.faces = new Array(faceCount);
 	        this.updateMatrix();
 	    }
@@ -1022,10 +1085,19 @@
 	                var fCount = fArray.length / 3;
 	                var mesh = new Mesh(data.name, vCount, fCount);
 	                for (var i = 0; i < vCount; i++) {
-	                    var x = vArray[i * vStep];
+	                    // Load position
+	                    var x = vArray[i * vStep + 0];
 	                    var y = vArray[i * vStep + 1];
 	                    var z = vArray[i * vStep + 2];
-	                    mesh.verticies[i] = vector_1.Vector.xyz(x, y, z);
+	                    // Load normals
+	                    var l = vArray[i * vStep + 3];
+	                    var _m = vArray[i * vStep + 4];
+	                    var n = vArray[i * vStep + 5];
+	                    mesh.vertices[i] = {
+	                        position: vector_1.Vector.xyz(x, y, z),
+	                        normal: vector_1.Vector.xyz(l, _m, n),
+	                        worldPosition: null
+	                    };
 	                }
 	                ;
 	                for (var _i = 0; _i < fCount; _i++) {
@@ -1046,16 +1118,40 @@
 	        key: 'Axes',
 	        get: function get() {
 	            var x = new Mesh("X Axis", 2, 0);
-	            x.verticies[0] = vector_1.Vector.Zero;
-	            x.verticies[1] = vector_1.Vector.xyz(1, 0, 0);
+	            x.vertices[0] = {
+	                position: vector_1.Vector.Zero,
+	                normal: vector_1.Vector.xyz(1, 0, 0),
+	                worldPosition: null
+	            };
+	            x.vertices[1] = {
+	                position: vector_1.Vector.xyz(1, 0, 0),
+	                normal: vector_1.Vector.xyz(1, 0, 0),
+	                worldPosition: null
+	            };
 	            x.color = new vector_1.Vector([1, 0, 0, 1]);
 	            var y = new Mesh("Y Axis", 2, 0);
-	            y.verticies[0] = vector_1.Vector.Zero;
-	            y.verticies[1] = vector_1.Vector.xyz(0, 1, 0);
+	            y.vertices[0] = {
+	                position: vector_1.Vector.Zero,
+	                normal: vector_1.Vector.xyz(0, 1, 0),
+	                worldPosition: null
+	            };
+	            y.vertices[1] = {
+	                position: vector_1.Vector.xyz(0, 1, 0),
+	                normal: vector_1.Vector.xyz(0, 1, 0),
+	                worldPosition: null
+	            };
 	            y.color = new vector_1.Vector([0, 1, 0, 1]);
 	            var z = new Mesh("Z Axis", 2, 0);
-	            z.verticies[0] = vector_1.Vector.Zero;
-	            z.verticies[1] = vector_1.Vector.xyz(0, 0, 1);
+	            z.vertices[0] = {
+	                position: vector_1.Vector.Zero,
+	                normal: vector_1.Vector.xyz(0, 0, 1),
+	                worldPosition: null
+	            };
+	            z.vertices[1] = {
+	                position: vector_1.Vector.xyz(0, 0, 1),
+	                normal: vector_1.Vector.xyz(0, 0, 1),
+	                worldPosition: null
+	            };
 	            z.color = new vector_1.Vector([0, 0, 1, 1]);
 	            return [x, y, z];
 	        }
@@ -1063,14 +1159,49 @@
 	        key: 'Cube',
 	        get: function get() {
 	            var m = new Mesh("Cube", 8, 12);
-	            m.verticies[7] = vector_1.Vector.xyz(-1, -1, -1);
-	            m.verticies[2] = vector_1.Vector.xyz(-1, -1, 1);
-	            m.verticies[4] = vector_1.Vector.xyz(-1, 1, -1);
-	            m.verticies[0] = vector_1.Vector.xyz(-1, 1, 1);
-	            m.verticies[6] = vector_1.Vector.xyz(1, -1, -1);
-	            m.verticies[3] = vector_1.Vector.xyz(1, -1, 1);
-	            m.verticies[5] = vector_1.Vector.xyz(1, 1, -1);
-	            m.verticies[1] = vector_1.Vector.xyz(1, 1, 1);
+	            m.vertices[7] = {
+	                position: vector_1.Vector.xyz(-1, -1, -1),
+	                normal: vector_1.Vector.xyz(-1, -1, -1),
+	                worldPosition: null
+	            };
+	            m.vertices[2] = {
+	                position: vector_1.Vector.xyz(-1, -1, 1),
+	                normal: vector_1.Vector.xyz(-1, -1, 1),
+	                worldPosition: null
+	            };
+	            m.vertices[4] = {
+	                position: vector_1.Vector.xyz(-1, 1, -1),
+	                normal: vector_1.Vector.xyz(-1, 1, -1),
+	                worldPosition: null
+	            };
+	            m.vertices[0] = {
+	                position: vector_1.Vector.xyz(-1, 1, 1),
+	                normal: vector_1.Vector.xyz(-1, 1, 1),
+	                worldPosition: null
+	            };
+	            m.vertices[6] = {
+	                position: vector_1.Vector.xyz(1, -1, -1),
+	                normal: vector_1.Vector.xyz(1, -1, -1),
+	                worldPosition: null
+	            };
+	            m.vertices[3] = {
+	                position: vector_1.Vector.xyz(1, -1, 1),
+	                normal: vector_1.Vector.xyz(1, -1, 1),
+	                worldPosition: null
+	            };
+	            m.vertices[5] = {
+	                position: vector_1.Vector.xyz(1, 1, -1),
+	                normal: vector_1.Vector.xyz(1, 1, -1),
+	                worldPosition: null
+	            };
+	            m.vertices[1] = {
+	                position: vector_1.Vector.xyz(1, 1, 1),
+	                normal: vector_1.Vector.xyz(1, 1, 1),
+	                worldPosition: null
+	            };
+	            for (var i = 0; i < 8; i++) {
+	                m.vertices[i].normal.normalizei();
+	            }
 	            m.faces[0] = { A: 0, B: 1, C: 2 };
 	            m.faces[1] = { A: 1, B: 2, C: 3 };
 	            m.faces[2] = { A: 1, B: 3, C: 6 };
