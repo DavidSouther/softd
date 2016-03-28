@@ -8,16 +8,22 @@ export interface Face {
   C: number;
 }
 
+export interface Vertex {
+  normal: Vector;
+  position: Vector;
+  worldPosition: Vector;
+}
+
 export class Mesh {
   private _position = Vector.Zero;
   private _rotation = Vector.Zero;
   private _matrix: Matrix;
-  verticies: Vector[];
+  vertices: Vertex[];
   faces: Face[];
-  color: Vector = new Vector([ 0, 1, 1, 1 ]);
+  color: Vector = new Vector([ 1, 1, 1, 1 ]);
 
   constructor(public name: string, vertCount: number, faceCount: number) {
-    this.verticies = new Array(vertCount);
+    this.vertices = new Array(vertCount);
     this.faces = new Array(faceCount);
     this.updateMatrix();
   }
@@ -43,33 +49,93 @@ export class Mesh {
 
   static get Axes(): Mesh[] {
     const x = new Mesh("X Axis", 2, 0);
-    x.verticies[0] = Vector.Zero;
-    x.verticies[1] = Vector.xyz(1, 0, 0);
+    x.vertices[0] = {
+      position : Vector.Zero,
+      normal : Vector.xyz(1, 0, 0),
+      worldPosition : null
+    };
+    x.vertices[1] = {
+      position : Vector.xyz(1, 0, 0),
+      normal : Vector.xyz(1, 0, 0),
+      worldPosition : null
+    };
     x.color = new Vector([ 1, 0, 0, 1 ]);
 
     const y = new Mesh("Y Axis", 2, 0);
-    y.verticies[0] = Vector.Zero;
-    y.verticies[1] = Vector.xyz(0, 1, 0);
+    y.vertices[0] = {
+      position : Vector.Zero,
+      normal : Vector.xyz(0, 1, 0),
+      worldPosition : null
+    };
+    y.vertices[1] = {
+      position : Vector.xyz(0, 1, 0),
+      normal : Vector.xyz(0, 1, 0),
+      worldPosition : null
+    };
     y.color = new Vector([ 0, 1, 0, 1 ]);
 
     const z = new Mesh("Z Axis", 2, 0);
-    z.verticies[0] = Vector.Zero;
-    z.verticies[1] = Vector.xyz(0, 0, 1);
+    z.vertices[0] = {
+      position : Vector.Zero,
+      normal : Vector.xyz(0, 0, 1),
+      worldPosition : null
+    };
+    z.vertices[1] = {
+      position : Vector.xyz(0, 0, 1),
+      normal : Vector.xyz(0, 0, 1),
+      worldPosition : null
+    };
     z.color = new Vector([ 0, 0, 1, 1 ]);
     return [ x, y, z ];
   }
 
   static get Cube(): Mesh {
     const m = new Mesh("Cube", 8, 12);
-    m.verticies[7] = (Vector.xyz(-1, -1, -1));
-    m.verticies[2] = (Vector.xyz(-1, -1, 1));
-    m.verticies[4] = (Vector.xyz(-1, 1, -1));
-    m.verticies[0] = (Vector.xyz(-1, 1, 1));
+    m.vertices[7] = {
+      position : Vector.xyz(-1, -1, -1),
+      normal : Vector.xyz(-1, -1, -1),
+      worldPosition : null
+    };
+    m.vertices[2] = {
+      position : Vector.xyz(-1, -1, 1),
+      normal : Vector.xyz(-1, -1, 1),
+      worldPosition : null
+    };
+    m.vertices[4] = {
+      position : Vector.xyz(-1, 1, -1),
+      normal : Vector.xyz(-1, 1, -1),
+      worldPosition : null
+    };
+    m.vertices[0] = {
+      position : Vector.xyz(-1, 1, 1),
+      normal : Vector.xyz(-1, 1, 1),
+      worldPosition : null
+    };
 
-    m.verticies[6] = (Vector.xyz(1, -1, -1));
-    m.verticies[3] = (Vector.xyz(1, -1, 1));
-    m.verticies[5] = (Vector.xyz(1, 1, -1));
-    m.verticies[1] = (Vector.xyz(1, 1, 1));
+    m.vertices[6] = {
+      position : Vector.xyz(1, -1, -1),
+      normal : Vector.xyz(1, -1, -1),
+      worldPosition : null
+    };
+    m.vertices[3] = {
+      position : Vector.xyz(1, -1, 1),
+      normal : Vector.xyz(1, -1, 1),
+      worldPosition : null
+    };
+    m.vertices[5] = {
+      position : Vector.xyz(1, 1, -1),
+      normal : Vector.xyz(1, 1, -1),
+      worldPosition : null
+    };
+    m.vertices[1] = {
+      position : Vector.xyz(1, 1, 1),
+      normal : Vector.xyz(1, 1, 1),
+      worldPosition : null
+    };
+
+    for (let i = 0; i < 8 ; i++) {
+      m.vertices[i].normal.normalizei();
+    }
 
     m.faces[0] = {A : 0, B : 1, C : 2};
     m.faces[1] = {A : 1, B : 2, C : 3};
@@ -119,16 +185,23 @@ export class Mesh {
       let mesh = new Mesh(data.name, vCount, fCount);
 
       for (let i = 0; i < vCount; i++) {
-        let x = vArray[i * vStep];
+        let x = vArray[i * vStep + 0];
         let y = vArray[i * vStep + 1];
         let z = vArray[i * vStep + 2];
-        mesh.verticies[i] = Vector.xyz(x, y, z);
+        let l = vArray[i * vStep + 3];
+        let m = vArray[i * vStep + 4];
+        let n = vArray[i * vStep + 5];
+        mesh.vertices[i] = {
+          position : Vector.xyz(x, y, z),
+          normal : Vector.xyz(l, m, n),
+          worldPosition : null,
+        };
       };
       for (let i = 0; i < fCount; i++) {
         mesh.faces[i] = {
-          A: fArray[i * 3],
-          B: fArray[i * 3 + 1],
-          C: fArray[i * 3 + 2],
+          A : fArray[i * 3],
+          B : fArray[i * 3 + 1],
+          C : fArray[i * 3 + 2],
         }
       }
       let pos = <number[]>data.position;

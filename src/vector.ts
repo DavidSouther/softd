@@ -32,11 +32,16 @@ export class Vector {
     i.set(v[0]*s, v[1]*s, v[2]*s, v[3]*s);
   }
 
-  normalize(): Vector {
+  normalizei(): void {
     const a = this._array;
     const l = this.length;
+    this.set( a[0] / l, a[1] / l, a[2] / l, a[3] / l );
+  }
 
-    return new Vector([ a[0] / l, a[1] / l, a[2] / l, a[3] / l ]);
+  normalize(): Vector {
+    const n = new Vector(this._array);
+    n.normalizei();
+    return n;
   }
 
   dot(v: Vector): number {

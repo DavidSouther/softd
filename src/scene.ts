@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', init, false);
 
 let canvas: HTMLCanvasElement;
 let device: Device;
-let meshes: Mesh[] = [...Mesh.Monkey, ...Mesh.Axes];
+let meshes: Mesh[] = [Mesh.Cube, /*...Mesh.Monkey,*/ ...Mesh.Axes];
 let mera: Camera = new Camera();
 
 function init() {
