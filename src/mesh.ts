@@ -185,9 +185,11 @@ export class Mesh {
       let mesh = new Mesh(data.name, vCount, fCount);
 
       for (let i = 0; i < vCount; i++) {
+        // Load position
         let x = vArray[i * vStep + 0];
         let y = vArray[i * vStep + 1];
         let z = vArray[i * vStep + 2];
+        // Load normals
         let l = vArray[i * vStep + 3];
         let m = vArray[i * vStep + 4];
         let n = vArray[i * vStep + 5];

@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', init, false);
 
 let canvas: HTMLCanvasElement;
 let device: Device;
-let meshes: Mesh[] = [Mesh.Cube, /*...Mesh.Monkey,*/ ...Mesh.Axes];
+let meshes: Mesh[] = [/*Mesh.Cube, */...Mesh.Monkey, ...Mesh.Axes];
 let mera: Camera = new Camera();
 
 function init() {
@@ -26,7 +26,7 @@ function renderLoop() {
   device.render(mera, meshes);
   device.present();
 
-  meshes[0].rotation = meshes[0].rotation.add(Vector.xyz(0.01, 0.01, 0));
+  meshes[0].rotation = meshes[0].rotation.add(Vector.xyz(0, 0.01, 0));
 
   requestAnimationFrame(renderLoop);
 }

@@ -90,6 +90,6 @@ export class Vector {
   private static _K = new Vector([ 0, 0, 1, 0 ]);
   static get K(): Vector { return Vector._K; }
   static xyz(x: number, y: number, z: number): Vector {
-    return new Vector([ x, y, z, 0 ]);
+    return new Vector([ x, y, z, 1 ]);
   }
 }

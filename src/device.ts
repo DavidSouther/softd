@@ -113,7 +113,7 @@ export class Device {
   project(v: Vertex, t: Matrix, w: Matrix, i: Vertex): void {
     t.vmuli(v.position, i.position);
     const x = i.position.x * this.workingWidth / 2 + this.workingWidth / 2.0;
-    const y = -i.DPosition.y * this.workingHeight / 2 + this.workingHeight / 2.0;
+    const y = -i.position.y * this.workingHeight / 2 + this.workingHeight / 2.0;
     i.position.set(x, y, i.position.z, 0);
 
     w.vmuli(v.position, i.worldPosition);
@@ -156,18 +156,29 @@ export class Device {
       const ndotl = this.data.ndotla;
       this.drawPoint(
           this.v.set(x, y, z),
-          this.c.set(color.x * ndotl, color.y * ndotl, color.z * ndotl));
+          this.c.set(color.x * ndotl, color.y * ndotl, color.z * ndotl, color.w));
     }
   }
 
-  computeNdotL(v: Vector, n: Vector, l: Vector): number {
-    const d = l.sub(v);
-    n.normalizei();
-    d.normalizei();
-    return Math.max(0, n.dot(d));
+  computeNdotL(position: Vector, normal: Vector, light: Vector): number {
+    const direction = light.sub(position);
+    normal.normalizei();
+    direction.normalizei();
+    const lighting = normal.dot(direction);
+    return Math.max(0, lighting);
   }
 
   drawTriangle(v0: Vertex, v1: Vertex, v2: Vertex, color: Vector): void {
+    // Calculate lighting
+    const face = v0.normal.add(v1.normal.add(v2.normal));
+    face.scalei(1/3, face);
+    const center = v0.worldPosition.add(v1.worldPosition.add(v2.worldPosition));
+    center.scalei(1/3, center);
+    this.data.ndotla = this.computeNdotL(center, face, this.light.position);
+    if (this.data.ndotla <= 0) {
+      return;
+    }
+
     // Sort triangles so that v0.y >= v1.y >= v2.y
     if (v0.position.y > v1.position.y) {
       [v1, v0] = [ v0, v1 ];
@@ -184,11 +195,6 @@ export class Device {
     const p0 = v0.position;
     const p1 = v1.position;
     const p2 = v2.position;
-
-    const face = v0.normal.add(v1.normal.add(v2.normal)).scale(1 / 3);
-    const center = v0.worldPosition.add(v1.worldPosition.add(v2.worldPosition))
-                       .scale(1 / 3);
-    this.data.ndotla = this.computeNdotL(center, face, this.light.position);
 
     const dyp1p0 = p1.y - p0.y;
     const dyp2p0 = p2.y - p0.y;
@@ -259,12 +265,8 @@ export class Device {
 
           c = .25 + ((f % mesh.faces.length) / mesh.faces.length) * 0.75;
           mesh.color.scalei(c, color);
+          color.set(color.x, color.y, color.z, mesh.color.w);
           this.drawTriangle(p0, p1, p2, color);
-          /*
-          this.drawLine(p0, p1, color);
-          this.drawLine(p1, p2, color);
-          this.drawLine(p2, p0, color);
-          */
         }
       } else {
         for (let v = 0; v < mesh.vertices.length - 1; v++) {
