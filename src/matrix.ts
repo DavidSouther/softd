@@ -1,16 +1,23 @@
-import {Vector} from './vector';
+import { Vector } from "./vector.ts";
 
 export class Matrix {
-  constructor(init: number[] | Float32Array =
-                  [ 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 ],
-              public _array: Float32Array = Float32Array.from(init)) {}
+  _array: Float32Array;
+  constructor(
+    init: number[] | Float32Array = [
+      1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
+    ],
+  ) {
+    this._array = Float32Array.from(init);
+  }
 
   set(x: number, y: number, v: number): Matrix {
-    this._array[x + (y * 4)] = v;
+    this._array[x + y * 4] = v;
     return this;
   }
 
-  get(x: number, y: number): number { return this._array[x + (y * 4)]; }
+  get(x: number, y: number): number {
+    return this._array[x + y * 4];
+  }
 
   setArray(n: number[]): Matrix {
     this._array[0] = n[0];
@@ -32,7 +39,9 @@ export class Matrix {
     return this;
   }
 
-  clone(): Matrix { return new Matrix(this._array); }
+  clone(): Matrix {
+    return new Matrix(this._array);
+  }
 
   mmul(m: Matrix): Matrix {
     const a = this._array;
@@ -127,7 +136,7 @@ export class Matrix {
       a00 * bx + a01 * by + a02 * bz + a03 * bw,
       a10 * bx + a11 * by + a12 * bz + a13 * bw,
       a20 * bx + a21 * by + a22 * bz + a23 * bw,
-      a30 * bx + a31 * by + a32 * bz + a33 * bw
+      a30 * bx + a31 * by + a32 * bz + a33 * bw,
     );
   }
 
@@ -136,15 +145,17 @@ export class Matrix {
       Array.from(this._array.subarray(0, 4)),
       Array.from(this._array.subarray(4, 8)),
       Array.from(this._array.subarray(8, 12)),
-      Array.from(this._array.subarray(12, 16))
+      Array.from(this._array.subarray(12, 16)),
     ];
   }
 
   static diag(a: number, b: number, c: number, d: number): Matrix {
-    return new Matrix([ a, 0, 0, 0, 0, b, 0, 0, 0, 0, c, 0, 0, 0, 0, d ]);
+    return new Matrix([a, 0, 0, 0, 0, b, 0, 0, 0, 0, c, 0, 0, 0, 0, d]);
   }
 
-  static from(n: number[]): Matrix { return new Matrix(n); }
+  static from(n: number[]): Matrix {
+    return new Matrix(n);
+  }
 
   static pitchYawRoll(xyzEuler: Vector) {
     const pitch = xyzEuler.x;
@@ -157,7 +168,7 @@ export class Matrix {
     const cr = Math.cos(roll);
     const sr = Math.sin(roll);
 
-   /* 
+    /* 
     return new Matrix([
           1,  0,   0, 0,
           0, cp, -sp, 0,
@@ -174,25 +185,35 @@ export class Matrix {
           0,   0,  1, 0,
           0,   0,  0, 1]));
           */
-    
+
     return new Matrix([
-       cy*cr, cp*sr + sp*sy*cr , sp*sr - cp*sy*cr, 0,
-      -cy*sr, cp*cr - sp*sy*sr , sp*cr + cp*sy*sr, 0,
-       sy   ,-sp*cy,   cp*cy, 0,
-       0, 0, 0, 1
+      cy * cr,
+      cp * sr + sp * sy * cr,
+      sp * sr - cp * sy * cr,
+      0,
+      -cy * sr,
+      cp * cr - sp * sy * sr,
+      sp * cr + cp * sy * sr,
+      0,
+      sy,
+      -sp * cy,
+      cp * cy,
+      0,
+      0,
+      0,
+      0,
+      1,
     ]);
-    
   }
-  
+
   static translation(p: Vector): Matrix {
     return new Matrix([1, 0, 0, p.x, 0, 1, 0, p.y, 0, 0, 1, p.z, 0, 0, 0, 1]);
   }
-  
+
   static lookAt(p: Vector, t: Vector, u: Vector = Vector.xyz(0, 1, 0)): Matrix {
     const zaxis = t.sub(p).normalize();
     const xaxis = u.cross(zaxis).normalize();
     const yaxis = zaxis.cross(xaxis).normalize();
-
 
     /*
     return Matrix.from([
@@ -206,20 +227,34 @@ export class Matrix {
         zaxis.x, yaxis.y, zaxis.z, 0,
         0, 0, 0, 1
     ]));
-    */  
+    */
     const zdotp = zaxis.dot(p);
     const ydotp = yaxis.dot(p);
     const xdotp = xaxis.dot(p);
-    
+
     return Matrix.from([
-        xaxis.x, yaxis.x, zaxis.x, 0,
-        xaxis.y, yaxis.y, zaxis.y, 0,
-        xaxis.z, yaxis.z, zaxis.z, 0,
-        p.x, p.y, p.z, 1
+      xaxis.x,
+      yaxis.x,
+      zaxis.x,
+      0,
+      xaxis.y,
+      yaxis.y,
+      zaxis.y,
+      0,
+      xaxis.z,
+      yaxis.z,
+      zaxis.z,
+      0,
+      p.x,
+      p.y,
+      p.z,
+      1,
     ]);
     /* */
   }
 
   private static _I = new Matrix();
-  static get Identity() { return Matrix._I; }
+  static get Identity() {
+    return Matrix._I;
+  }
 }

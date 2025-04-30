@@ -1,17 +1,17 @@
-import { Camera } from './camera';
-import { Device } from './device';
-import { Mesh } from './mesh';
-import { Vector } from './vector';
+import { Camera } from "./camera.ts";
+import { Device } from "./device.ts";
+import { Mesh } from "./mesh.ts";
+import { Vector } from "./vector.ts";
 
-document.addEventListener('DOMContentLoaded', init, false);
+document.addEventListener("DOMContentLoaded", init, false);
 
 let canvas: HTMLCanvasElement;
 let device: Device;
-let meshes: Mesh[] = [/*Mesh.Cube, */...Mesh.Monkey, ...Mesh.Axes];
+let meshes: Mesh[] = [/*Mesh.Cube, */ ...Mesh.Monkey, ...Mesh.Axes];
 let mera: Camera = new Camera();
 
 function init() {
-  canvas = <HTMLCanvasElement>document.getElementsByTagName('canvas')[0];
+  canvas = document.getElementsByTagName("canvas")[0];
   device = new Device(canvas);
 
   mera.position = Vector.xyz(1, 2, -8);

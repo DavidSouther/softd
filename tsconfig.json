@@ -1,20 +1,26 @@
 {
-    "compilerOptions": {
-        "declaration": true,
-        "experimentalDecorators": true,
-        "module": "commonjs",
-        "noEmitOnError": true,
-        "noImplicitAny": true,
-        "outDir": "./build",
-        "preserveConstEnums": true,
-        "rootDir": ".",
-        "sourceMap": true,
-        "suppressImplicitAnyIndexErrors": true,
-        "target": "es6"
-    },
-    "exclude": [
-        "node_modules",
-        "build",
-        "lib"
-    ]
+  "include": ["src/**/*"],
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "sourceMap": true,
+    "declaration": false,
+    "target": "ESNext",
+    "skipLibCheck": true,
+    "module": "NodeNext",
+    "noUncheckedSideEffectImports": true,
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
+    "resolveJsonModule": true,
+    "strict": true,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noPropertyAccessFromIndexSignature": true,
+    // "noUncheckedIndexedAccess": true,
+    "noEmitOnError": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true
+  }
 }

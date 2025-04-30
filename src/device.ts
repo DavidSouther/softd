@@ -1,7 +1,8 @@
-import {Camera} from './camera';
-import {Matrix} from './Matrix';
-import {Mesh, Face, Vertex} from './Mesh';
-import {Vector} from './Vector';
+import { assertExists } from "./assert.ts";
+import { Camera } from "./camera.ts";
+import { Matrix } from "./matrix.ts";
+import { Mesh, type Face, type Vertex } from "./mesh.ts";
+import { Vector } from "./vector.ts";
 
 // Clamping values to keep them between 0 and 1
 function clamp(value: number, min: number = 0, max: number = 1): number {
@@ -25,46 +26,61 @@ interface ScanlineData {
 export class Device {
   private v = Vector.xyz(0, 0, 0); // Scratch pad
   private c = Vector.xyz(0, 0, 0); // Color scratch pad
-  private data:
-      ScanlineData = {y : 0, ndotla : 0, ndotlb : 0, ndotlc : 0, ndotld : 0};
-  private light = {
-    position: Vector.xyz(0, 10, 10)
+  private data: ScanlineData = {
+    y: 0,
+    ndotla: 0,
+    ndotlb: 0,
+    ndotlc: 0,
+    ndotld: 0,
   };
-  private backbuffer: Uint8ClampedArray;
+  private light = {
+    position: Vector.xyz(0, 10, 10),
+  };
+  private backbuffer!: Uint8ClampedArray;
   private depthbuffer: number[];
   private workingCanvas: HTMLCanvasElement;
   private workingWidth: number;
   private workingHeight: number;
   private workingContext: CanvasRenderingContext2D;
+
   constructor(canvas: HTMLCanvasElement) {
     this.workingCanvas = canvas;
     this.workingWidth = canvas.width;
     this.workingHeight = canvas.height;
-    this.workingContext = this.workingCanvas.getContext('2d');
+    const context = this.workingCanvas.getContext("2d");
+    this.workingContext = assertExists(context);
     this.depthbuffer = new Array(this.workingWidth * this.workingHeight);
+    this.reset();
   }
 
-  get width(): number { return this.workingWidth; }
-  get height(): number { return this.workingHeight; }
+  get width(): number {
+    return this.workingWidth;
+  }
+  get height(): number {
+    return this.workingHeight;
+  }
 
   reset() {
-    this.backbuffer =
-        new Uint8ClampedArray(4 * this.workingWidth * this.workingHeight);
+    this.backbuffer = new Uint8ClampedArray(
+      4 * this.workingWidth * this.workingHeight,
+    );
     for (let i = 0; i < this.workingWidth * this.workingHeight; i++) {
-      this.backbuffer[3 + (i * 4)] = 255;
+      this.backbuffer[3 + i * 4] = 255;
     }
     this.depthbuffer.fill(Number.MAX_VALUE, 0, this.depthbuffer.length);
   }
 
   present() {
     this.workingContext.putImageData(
-        new ImageData(this.backbuffer, this.workingWidth, this.workingHeight),
-        0, 0);
+      new ImageData(this.backbuffer, this.workingWidth, this.workingHeight),
+      0,
+      0,
+    );
   }
 
   putPixel(v: Vector, color: Vector): void {
     const data = this.backbuffer;
-    const index = ((v.x | 0) + ((v.y | 0) * this.workingWidth));
+    const index = (v.x | 0) + (v.y | 0) * this.workingWidth;
     const index4 = index * 4;
 
     if (this.depthbuffer[index] < v.z) {
@@ -86,15 +102,15 @@ export class Device {
     const y1 = p1.y | 0;
     const dx = Math.abs(x0 - x1);
     const dy = Math.abs(y0 - y1);
-    const sx = (x0 < x1) ? 1 : -1;
-    const sy = (y0 < y1) ? 1 : -1;
+    const sx = x0 < x1 ? 1 : -1;
+    const sy = y0 < y1 ? 1 : -1;
     let err = dx - dy;
     let e2: number;
 
     while (true) {
       this.drawPoint(this.v.set(x0, y0, 0), color);
 
-      if ((x0 == x1) && (y0 == y1)) {
+      if (x0 == x1 && y0 == y1) {
         return;
       }
 
@@ -112,8 +128,9 @@ export class Device {
 
   project(v: Vertex, t: Matrix, w: Matrix, i: Vertex): void {
     t.vmuli(v.position, i.position);
-    const x = i.position.x * this.workingWidth / 2 + this.workingWidth / 2.0;
-    const y = -i.position.y * this.workingHeight / 2 + this.workingHeight / 2.0;
+    const x = (i.position.x * this.workingWidth) / 2 + this.workingWidth / 2.0;
+    const y =
+      (-i.position.y * this.workingHeight) / 2 + this.workingHeight / 2.0;
     i.position.set(x, y, i.position.z, 0);
 
     w.vmuli(v.position, i.worldPosition);
@@ -121,17 +138,26 @@ export class Device {
     i.normal.set(i.normal.x, i.normal.y, i.normal.z);
   }
 
-  static Yellow = new Vector([ 1, 1, 0, 1 ]);
-  static Black = new Vector([ 0, 0, 0, 1 ]);
+  static Yellow = new Vector([1, 1, 0, 1]);
+  static Black = new Vector([0, 0, 0, 1]);
   drawPoint(p: Vector, color: Vector = Device.Yellow): void {
-    if (p.x >= 0 && p.y >= 0 && p.x < this.workingWidth &&
-        p.y < this.workingHeight) {
+    if (
+      p.x >= 0 &&
+      p.y >= 0 &&
+      p.x < this.workingWidth &&
+      p.y < this.workingHeight
+    ) {
       this.putPixel(p, color);
     }
   }
 
-  scanLine(va: Vertex, vb: Vertex, vc: Vertex, vd: Vertex,
-           color: Vector): void {
+  scanLine(
+    va: Vertex,
+    vb: Vertex,
+    vc: Vertex,
+    vd: Vertex,
+    color: Vector,
+  ): void {
     const y = this.data.y;
     const pa = va.position;
     const pb = vb.position;
@@ -155,8 +181,9 @@ export class Device {
       const z = interpolate(sz, ez, zgrad) * 100;
       const ndotl = this.data.ndotla;
       this.drawPoint(
-          this.v.set(x, y, z),
-          this.c.set(color.x * ndotl, color.y * ndotl, color.z * ndotl, color.w));
+        this.v.set(x, y, z),
+        this.c.set(color.x * ndotl, color.y * ndotl, color.z * ndotl, color.w),
+      );
     }
   }
 
@@ -171,9 +198,9 @@ export class Device {
   drawTriangle(v0: Vertex, v1: Vertex, v2: Vertex, color: Vector): void {
     // Calculate lighting
     const face = v0.normal.add(v1.normal.add(v2.normal));
-    face.scalei(1/3, face);
+    face.scalei(1 / 3, face);
     const center = v0.worldPosition.add(v1.worldPosition.add(v2.worldPosition));
-    center.scalei(1/3, center);
+    center.scalei(1 / 3, center);
     this.data.ndotla = this.computeNdotL(center, face, this.light.position);
     if (this.data.ndotla <= 0) {
       return;
@@ -181,15 +208,15 @@ export class Device {
 
     // Sort triangles so that v0.y >= v1.y >= v2.y
     if (v0.position.y > v1.position.y) {
-      [v1, v0] = [ v0, v1 ];
+      [v1, v0] = [v0, v1];
     }
 
     if (v1.position.y > v2.position.y) {
-      [v2, v1] = [ v1, v2 ];
+      [v2, v1] = [v1, v2];
     }
 
     if (v0.position.y > v1.position.y) {
-      [v1, v0] = [ v0, v1 ];
+      [v1, v0] = [v0, v1];
     }
 
     const p0 = v0.position;
@@ -211,7 +238,7 @@ export class Device {
     //   |  /
     //    P2
     if (mp0p1 > mp0p2) {
-      for (let y = (p0.y | 0); y <= (p2.y | 0); y++) {
+      for (let y = p0.y | 0; y <= (p2.y | 0); y++) {
         if (y < p1.y) {
           this.data.y = y;
           this.scanLine(v0, v2, v0, v1, color);
@@ -220,7 +247,7 @@ export class Device {
         }
       }
     } else {
-      for (let y = (p0.y | 0); y <= (p2.y | 0); y++) {
+      for (let y = p0.y | 0; y <= (p2.y | 0); y++) {
         if (y < p1.y) {
           this.data.y = y;
           this.scanLine(v0, v1, v0, v2, color);
@@ -236,19 +263,19 @@ export class Device {
     let mesh: Mesh;
     let face: Face;
     let p0 = {
-      position : Vector.xyz(0, 0, 0),
-      normal : Vector.xyz(0, 0, 0),
-      worldPosition : Vector.xyz(0, 0, 0)
+      position: Vector.xyz(0, 0, 0),
+      normal: Vector.xyz(0, 0, 0),
+      worldPosition: Vector.xyz(0, 0, 0),
     };
     let p1 = {
-      position : Vector.xyz(0, 0, 0),
-      normal : Vector.xyz(0, 0, 0),
-      worldPosition : Vector.xyz(0, 0, 0)
+      position: Vector.xyz(0, 0, 0),
+      normal: Vector.xyz(0, 0, 0),
+      worldPosition: Vector.xyz(0, 0, 0),
     };
     let p2 = {
-      position : Vector.xyz(0, 0, 0),
-      normal : Vector.xyz(0, 0, 0),
-      worldPosition : Vector.xyz(0, 0, 0)
+      position: Vector.xyz(0, 0, 0),
+      normal: Vector.xyz(0, 0, 0),
+      worldPosition: Vector.xyz(0, 0, 0),
     };
     let color = Vector.xyz(0, 0, 0);
     let c: number;
@@ -263,7 +290,7 @@ export class Device {
           this.project(mesh.vertices[face.B], transform, camera.matrix, p1);
           this.project(mesh.vertices[face.C], transform, camera.matrix, p2);
 
-          c = .25 + ((f % mesh.faces.length) / mesh.faces.length) * 0.75;
+          c = 0.25 + ((f % mesh.faces.length) / mesh.faces.length) * 0.75;
           mesh.color.scalei(c, color);
           color.set(color.x, color.y, color.z, mesh.color.w);
           this.drawTriangle(p0, p1, p2, color);
