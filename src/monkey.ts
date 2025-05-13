@@ -1,4 +1,4 @@
-export const SUZANNE: any = {
+export const SUZANNE: unknown = {
   autoClear: true,
   clearColor: [0.0, 0.0, 0.0],
   ambientColor: [0.0, 0.0, 0.0],

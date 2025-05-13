@@ -1,11 +1,11 @@
 import { assertExists } from "./assert.ts";
-import { Camera } from "./camera.ts";
-import { Matrix } from "./matrix.ts";
-import { Mesh, type Face, type Vertex } from "./mesh.ts";
+import type { Camera } from "./camera.ts";
+import type { Matrix } from "./matrix.ts";
+import type { Face, Mesh, Vertex } from "./mesh.ts";
 import { Vector } from "./vector.ts";
 
 // Clamping values to keep them between 0 and 1
-function clamp(value: number, min: number = 0, max: number = 1): number {
+function clamp(value: number, min = 0, max = 1): number {
   return Math.max(min, Math.min(value, max));
 }
 
@@ -110,7 +110,7 @@ export class Device {
     while (true) {
       this.drawPoint(this.v.set(x0, y0, 0), color);
 
-      if (x0 == x1 && y0 == y1) {
+      if (x0 === x1 && y0 === y1) {
         return;
       }
 
@@ -167,8 +167,8 @@ export class Device {
     // Thanks to current Y, we can compute the gradient to compute others values
     // like the starting X (sx) and ending X (ex) to draw between if pa.Y ==
     // pb.Y or pc.Y == pd.Y, gradient is forced to 1
-    const gradient1 = pa.y != pb.y ? (y - pa.y) / (pb.y - pa.y) : 1;
-    const gradient2 = pc.y != pd.y ? (y - pc.y) / (pd.y - pc.y) : 1;
+    const gradient1 = pa.y !== pb.y ? (y - pa.y) / (pb.y - pa.y) : 1;
+    const gradient2 = pc.y !== pd.y ? (y - pc.y) / (pd.y - pc.y) : 1;
 
     const sx = interpolate(pa.x, pb.x, gradient1) | 0;
     const ex = interpolate(pc.x, pd.x, gradient2) | 0;
@@ -262,22 +262,22 @@ export class Device {
     let transform: Matrix;
     let mesh: Mesh;
     let face: Face;
-    let p0 = {
+    const p0 = {
       position: Vector.xyz(0, 0, 0),
       normal: Vector.xyz(0, 0, 0),
       worldPosition: Vector.xyz(0, 0, 0),
     };
-    let p1 = {
+    const p1 = {
       position: Vector.xyz(0, 0, 0),
       normal: Vector.xyz(0, 0, 0),
       worldPosition: Vector.xyz(0, 0, 0),
     };
-    let p2 = {
+    const p2 = {
       position: Vector.xyz(0, 0, 0),
       normal: Vector.xyz(0, 0, 0),
       worldPosition: Vector.xyz(0, 0, 0),
     };
-    let color = Vector.xyz(0, 0, 0);
+    const color = Vector.xyz(0, 0, 0);
     let c: number;
 
     for (let i = 0; i < meshes.length; i++) {

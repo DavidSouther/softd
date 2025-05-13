@@ -1,6 +1,6 @@
 import { Matrix } from "./matrix.ts";
-import { Vector } from "./vector.ts";
 import { SUZANNE } from "./monkey.ts";
+import { Vector } from "./vector.ts";
 
 export interface Face {
   A: number;
@@ -169,14 +169,26 @@ export class Mesh {
     return Mesh._monkey;
   }
 
-  static fromBabylon(saved: any): Mesh[] {
+  static fromBabylon(saved: unknown): Mesh[] {
     const meshes: Mesh[] = [];
-    for (let m = 0; m < saved.meshes.length; m++) {
-      let data: any = saved.meshes[m];
-      let vArray: number[] = data.vertices;
-      let fArray: number[] = data.indices;
+    const saved_meshes =
+      (
+        saved as {
+          meshes?: {
+            vertices: number[];
+            indices: number[];
+            uvCount: 0 | 1 | 2;
+            name: string;
+            position: [number, number, number];
+          }[];
+        }
+      ).meshes ?? [];
+    for (let m = 0; m < saved_meshes.length; m++) {
+      const data = saved_meshes[m];
+      const vArray = data.vertices;
+      const fArray = data.indices;
 
-      let uvCount: number = data.uvCount;
+      const uvCount = data.uvCount;
       let vStep = 1;
 
       switch (uvCount) {
@@ -191,20 +203,20 @@ export class Mesh {
           break;
       }
 
-      let vCount = vArray.length / vStep;
-      let fCount = fArray.length / 3;
+      const vCount = vArray.length / vStep;
+      const fCount = fArray.length / 3;
 
-      let mesh = new Mesh(data.name, vCount, fCount);
+      const mesh = new Mesh(data.name, vCount, fCount);
 
       for (let i = 0; i < vCount; i++) {
         // Load position
-        let x = vArray[i * vStep + 0];
-        let y = vArray[i * vStep + 1];
-        let z = vArray[i * vStep + 2];
+        const x = vArray[i * vStep + 0];
+        const y = vArray[i * vStep + 1];
+        const z = vArray[i * vStep + 2];
         // Load normals
-        let l = vArray[i * vStep + 3];
-        let m = vArray[i * vStep + 4];
-        let n = vArray[i * vStep + 5];
+        const l = vArray[i * vStep + 3];
+        const m = vArray[i * vStep + 4];
+        const n = vArray[i * vStep + 5];
         mesh.vertices[i] = {
           position: Vector.xyz(x, y, z),
           normal: Vector.xyz(l, m, n),
@@ -218,7 +230,7 @@ export class Mesh {
           C: fArray[i * 3 + 2],
         };
       }
-      let pos: number[] = data.position;
+      const pos: number[] = data.position;
       mesh.position = Vector.xyz(pos[0], pos[1], pos[2]);
       meshes.push(mesh);
     }

@@ -7,8 +7,8 @@ document.addEventListener("DOMContentLoaded", init, false);
 
 let canvas: HTMLCanvasElement;
 let device: Device;
-let meshes: Mesh[] = [/*Mesh.Cube, */ ...Mesh.Monkey, ...Mesh.Axes];
-let mera: Camera = new Camera();
+const meshes: Mesh[] = [/*Mesh.Cube, */ ...Mesh.Monkey, ...Mesh.Axes];
+const mera: Camera = new Camera();
 
 function init() {
   canvas = document.getElementsByTagName("canvas")[0];
@@ -20,7 +20,7 @@ function init() {
   requestAnimationFrame(renderLoop);
 }
 
-let s = 1;
+const s = 1;
 function renderLoop() {
   device.reset();
   device.render(mera, meshes);

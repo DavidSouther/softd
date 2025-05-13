@@ -90,7 +90,7 @@ export class Vector {
   get w() {
     return this._array[3];
   }
-  set(x: number, y: number, z: number, w: number = 0): Vector {
+  set(x: number, y: number, z: number, w = 0): Vector {
     this._array[0] = x;
     this._array[1] = y;
     this._array[2] = z;

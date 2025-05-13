@@ -12,8 +12,8 @@ export class Camera {
 
   private _fov: number = 110 * DEG_TO_HALF_RAD;
   private _aspect: number = 4 / 3;
-  private _znear: number = 0.1;
-  private _zfar: number = 100;
+  private _znear = 0.1;
+  private _zfar = 100;
 
   constructor() {
     this._lookat = Matrix.lookAt(this._position, this._target);

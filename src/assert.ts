@@ -12,7 +12,7 @@ export class AssertionError extends Error {
 export function assert<_T extends true>(
   condition: boolean,
   message?: AssertMessage,
-): void | never {
+): undefined | never {
   if (!condition) {
     throw new AssertionError(message instanceof Function ? message() : message);
   }
