@@ -33,9 +33,6 @@ export class Device {
     ndotlc: 0,
     ndotld: 0,
   };
-  private light = {
-    position: Vector.xyz(0, 10, 10),
-  };
   private backbuffer!: Uint8ClampedArray;
   private depthbuffer: number[];
   private workingCanvas: HTMLCanvasElement;
@@ -133,12 +130,15 @@ export class Device {
       (-i.position.y * this.workingHeight) / 2 + this.workingHeight / 2.0;
     i.position.set(x, y, i.position.z, 0);
 
-    w.vmuli(v.position, i.worldPosition);
-    w.vmuli(v.normal, i.normal);
+    w.vmuli(i.position, i.worldPosition);
+    t.vmuli(v.normal, i.normal);
     i.normal.set(i.normal.x, i.normal.y, i.normal.z);
   }
 
+  static Red = new Vector([1, 0, 0, 1]);
+  static Blue = new Vector([0, 0, 1, 1]);
   static Yellow = new Vector([1, 1, 0, 1]);
+  static Green = new Vector([0, 1, 0, 1]);
   static Black = new Vector([0, 0, 0, 1]);
   drawPoint(p: Vector, color: Vector = Device.Yellow): void {
     if (
@@ -164,9 +164,6 @@ export class Device {
     const pc = vc.position;
     const pd = vd.position;
 
-    // Thanks to current Y, we can compute the gradient to compute others values
-    // like the starting X (sx) and ending X (ex) to draw between if pa.Y ==
-    // pb.Y or pc.Y == pd.Y, gradient is forced to 1
     const gradient1 = pa.y !== pb.y ? (y - pa.y) / (pb.y - pa.y) : 1;
     const gradient2 = pc.y !== pd.y ? (y - pc.y) / (pd.y - pc.y) : 1;
 
@@ -175,7 +172,6 @@ export class Device {
     const sz = interpolate(pa.z, pb.z, gradient1);
     const ez = interpolate(pc.z, pd.z, gradient2);
 
-    // drawing a line from left (sx) to right (ex)
     for (let x = sx; x < ex; x++) {
       const zgrad = (x - sx) / (ex - sx);
       const z = interpolate(sz, ez, zgrad) * 100;
@@ -187,21 +183,36 @@ export class Device {
     }
   }
 
-  computeNdotL(position: Vector, normal: Vector, light: Vector): number {
-    const direction = light.sub(position);
-    normal.normalizei();
-    direction.normalizei();
-    const lighting = normal.dot(direction);
-    return Math.max(0, lighting);
+  computeNdotL(position: Vector, normal: Vector, lights: Vector[]): number {
+    const ambient = 0.25;
+    let directional = 0;
+    for (const light of lights) {
+      const direction = light.sub(position);
+      const distance = direction.length;
+      const intensity = 50000 / (distance * distance);
+      normal.normalizei();
+      direction.normalizei();
+      const dir = normal.dot(direction) * intensity;
+      directional += Math.max(0, dir);
+    }
+    return ambient + directional;
   }
 
-  drawTriangle(v0: Vertex, v1: Vertex, v2: Vertex, color: Vector): void {
+  drawTriangle(
+    v0: Vertex,
+    v1: Vertex,
+    v2: Vertex,
+    color: Vector,
+    lights: Vector[],
+    wireframe?: Vector,
+  ): void {
     // Calculate lighting
     const face = v0.normal.add(v1.normal.add(v2.normal));
     face.scalei(1 / 3, face);
     const center = v0.worldPosition.add(v1.worldPosition.add(v2.worldPosition));
     center.scalei(1 / 3, center);
-    this.data.ndotla = this.computeNdotL(center, face, this.light.position);
+    this.data.ndotla = this.computeNdotL(center, face, lights);
+    // this.data.ndotla = 1;
     if (this.data.ndotla <= 0) {
       return;
     }
@@ -230,49 +241,49 @@ export class Device {
     const mp0p1 = dyp1p0 > 0 ? dxp1p0 / dyp1p0 : 0;
     const mp0p2 = dyp2p0 > 0 ? dxp2p0 / dyp2p0 : 0;
 
-    // First case, for:
-    //
-    //    P0
-    //   |  \
-    //   |   P1
-    //   |  /
-    //    P2
-    if (mp0p1 > mp0p2) {
-      for (let y = p0.y | 0; y <= (p2.y | 0); y++) {
+    for (let y = p0.y | 0; y <= (p2.y | 0); y++) {
+      this.data.y = y;
+      if (mp0p1 > mp0p2) {
         if (y < p1.y) {
-          this.data.y = y;
           this.scanLine(v0, v2, v0, v1, color);
         } else {
           this.scanLine(v0, v2, v1, v2, color);
         }
-      }
-    } else {
-      for (let y = p0.y | 0; y <= (p2.y | 0); y++) {
+      } else {
         if (y < p1.y) {
-          this.data.y = y;
           this.scanLine(v0, v1, v0, v2, color);
         } else {
           this.scanLine(v1, v2, v0, v2, color);
         }
       }
     }
+
+    if (wireframe) {
+      this.drawLine(v0.position, v1.position, wireframe);
+      this.drawLine(v1.position, v2.position, wireframe);
+      this.drawLine(v0.position, v2.position, wireframe);
+    }
   }
 
-  render(camera: Camera, meshes: Mesh[]) {
+  drawNorm(position: Vector, norm: Vector) {
+    this.drawLine(position, norm.add(position), Device.Yellow);
+  }
+
+  render(camera: Camera, meshes: Mesh[], lights: Vector[], wireframe?: Vector) {
     let transform: Matrix;
     let mesh: Mesh;
     let face: Face;
-    const p0 = {
+    const v0 = {
       position: Vector.xyz(0, 0, 0),
       normal: Vector.xyz(0, 0, 0),
       worldPosition: Vector.xyz(0, 0, 0),
     };
-    const p1 = {
+    const v1 = {
       position: Vector.xyz(0, 0, 0),
       normal: Vector.xyz(0, 0, 0),
       worldPosition: Vector.xyz(0, 0, 0),
     };
-    const p2 = {
+    const v2 = {
       position: Vector.xyz(0, 0, 0),
       normal: Vector.xyz(0, 0, 0),
       worldPosition: Vector.xyz(0, 0, 0),
@@ -286,20 +297,20 @@ export class Device {
       if (mesh.faces.length > 0) {
         for (let f = 0; f < mesh.faces.length; f++) {
           face = mesh.faces[f];
-          this.project(mesh.vertices[face.A], transform, camera.matrix, p0);
-          this.project(mesh.vertices[face.B], transform, camera.matrix, p1);
-          this.project(mesh.vertices[face.C], transform, camera.matrix, p2);
+          this.project(mesh.vertices[face.A], transform, camera.matrix, v0);
+          this.project(mesh.vertices[face.B], transform, camera.matrix, v1);
+          this.project(mesh.vertices[face.C], transform, camera.matrix, v2);
 
-          c = 0.25 + ((f % mesh.faces.length) / mesh.faces.length) * 0.75;
-          mesh.color.scalei(c, color);
-          color.set(color.x, color.y, color.z, mesh.color.w);
-          this.drawTriangle(p0, p1, p2, color);
+          //   c = 0.25 + ((f % mesh.faces.length) / mesh.faces.length) * 0.75;
+          //   mesh.color.scalei(c, color);
+          //   color.set(color.x, color.y, color.z, mesh.color.w);
+          this.drawTriangle(v0, v1, v2, mesh.color, lights, wireframe);
         }
       } else {
         for (let v = 0; v < mesh.vertices.length - 1; v++) {
-          this.project(mesh.vertices[v], transform, camera.matrix, p0);
-          this.project(mesh.vertices[v + 1], transform, camera.matrix, p1);
-          this.drawLine(p0.position, p1.position, mesh.color);
+          this.project(mesh.vertices[v], transform, camera.matrix, v0);
+          this.project(mesh.vertices[v + 1], transform, camera.matrix, v1);
+          this.drawLine(v0.position, v1.position, mesh.color);
         }
       }
     }

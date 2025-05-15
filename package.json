@@ -5,7 +5,7 @@
     "check": "biome check src/*.ts && tsc --noEmit",
     "fix": "biome check --write --unsafe src/*.ts",
     "test": "vitest src/**/*.spec.ts",
-    "serve": "vite serve"
+    "start": "vite serve"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",

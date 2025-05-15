@@ -37,10 +37,22 @@ export class Vector {
     i.set(v[0] * s, v[1] * s, v[2] * s, v[3] * s);
   }
 
+  scales(s: number): Vector {
+    this.scalei(s, this);
+    return this;
+  }
+
   normalizei(): void {
     const a = this._array;
     const l = this.length;
     this.set(a[0] / l, a[1] / l, a[2] / l, a[3] / l);
+  }
+
+  normalize3i(): void {
+    const a = this._array;
+    a[3] = 0;
+    const l = this.length;
+    this.set(a[0] / l, a[1] / l, a[2] / l, 0);
   }
 
   normalize(): Vector {
@@ -100,21 +112,24 @@ export class Vector {
 
   private static _Zero = new Vector([0, 0, 0, 0]);
   static get Zero() {
-    return Vector._Zero;
+    return Vector._Zero.clone();
   }
-  private static _I = new Vector();
+  private static _I = new Vector([1, 0, 0, 0]);
   static get I(): Vector {
-    return Vector._I;
+    return Vector._I.clone();
   }
   private static _J = new Vector([0, 1, 0, 0]);
   static get J(): Vector {
-    return Vector._J;
+    return Vector._J.clone();
   }
   private static _K = new Vector([0, 0, 1, 0]);
   static get K(): Vector {
-    return Vector._K;
+    return Vector._K.clone();
   }
   static xyz(x: number, y: number, z: number): Vector {
     return new Vector([x, y, z, 1]);
+  }
+  static xyz0(x: number, y: number, z: number): Vector {
+    return new Vector([x, y, z, 0]);
   }
 }

@@ -57,6 +57,14 @@ export class Mesh {
     this.updateMatrix();
   }
 
+  scale(scale: number) {
+    for (const v of this.vertices) {
+      v.position.scales(scale);
+      v.normal.set(v.position.x, v.position.y, v.position.z, 0);
+      v.normal.normalize3i();
+    }
+  }
+
   static get Axes(): Mesh[] {
     const x = new Mesh("X Axis", 2, 0);
     x.vertices[0] = {
@@ -99,47 +107,73 @@ export class Mesh {
     return [x, y, z];
   }
 
+  static get Triangle(): Mesh {
+    const mesh = new Mesh("Triangle", 3, 1);
+    mesh.vertices[0] = {
+      position: Vector.xyz(-1, -1, -1),
+      normal: Vector.xyz0(-1, -1, -1),
+      worldPosition: Vector.Zero,
+    };
+    mesh.vertices[1] = {
+      position: Vector.xyz(0, 1, -1),
+      normal: Vector.xyz0(0, 1, -1),
+      worldPosition: Vector.Zero,
+    };
+    mesh.vertices[2] = {
+      position: Vector.xyz(0, -1, 1),
+      normal: Vector.xyz0(0, -1, 1),
+      worldPosition: Vector.Zero,
+    };
+    for (let i = 0; i < 3; i++) {
+      mesh.vertices[i].normal.normalizei();
+    }
+
+    mesh.faces[0] = { A: 0, B: 1, C: 2 };
+
+    return mesh;
+  }
+
   static get Cube(): Mesh {
     const m = new Mesh("Cube", 8, 12);
     m.vertices[7] = {
       position: Vector.xyz(-1, -1, -1),
-      normal: Vector.xyz(-1, -1, -1),
+      normal: Vector.xyz0(-1, -1, -1),
       worldPosition: Vector.Zero,
     };
     m.vertices[2] = {
       position: Vector.xyz(-1, -1, 1),
-      normal: Vector.xyz(-1, -1, 1),
+      normal: Vector.xyz0(-1, -1, 1),
       worldPosition: Vector.Zero,
     };
     m.vertices[4] = {
       position: Vector.xyz(-1, 1, -1),
-      normal: Vector.xyz(-1, 1, -1),
+      normal: Vector.xyz0(-1, 1, -1),
       worldPosition: Vector.Zero,
     };
     m.vertices[0] = {
       position: Vector.xyz(-1, 1, 1),
-      normal: Vector.xyz(-1, 1, 1),
+      normal: Vector.xyz0(-1, 1, 1),
       worldPosition: Vector.Zero,
     };
 
     m.vertices[6] = {
       position: Vector.xyz(1, -1, -1),
-      normal: Vector.xyz(1, -1, -1),
+      normal: Vector.xyz0(1, -1, -1),
       worldPosition: Vector.Zero,
     };
     m.vertices[3] = {
       position: Vector.xyz(1, -1, 1),
-      normal: Vector.xyz(1, -1, 1),
+      normal: Vector.xyz0(1, -1, 1),
       worldPosition: Vector.Zero,
     };
     m.vertices[5] = {
       position: Vector.xyz(1, 1, -1),
-      normal: Vector.xyz(1, 1, -1),
+      normal: Vector.xyz0(1, 1, -1),
       worldPosition: Vector.Zero,
     };
     m.vertices[1] = {
       position: Vector.xyz(1, 1, 1),
-      normal: Vector.xyz(1, 1, 1),
+      normal: Vector.xyz0(1, 1, 1),
       worldPosition: Vector.Zero,
     };
 
@@ -219,7 +253,7 @@ export class Mesh {
         const n = vArray[i * vStep + 5];
         mesh.vertices[i] = {
           position: Vector.xyz(x, y, z),
-          normal: Vector.xyz(l, m, n),
+          normal: Vector.xyz0(l, m, n),
           worldPosition: Vector.Zero,
         };
       }
