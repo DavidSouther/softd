@@ -5,13 +5,12 @@
     "check": "biome check src/*.ts && tsc --noEmit",
     "fix": "biome check --write --unsafe src/*.ts",
     "test": "vitest src/**/*.spec.ts",
-    "build": "tsc -p .",
-    "serve": "http-server ."
+    "serve": "vite serve"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
-    "http-server": "^14.1.1",
     "typescript": "^5.8.3",
+    "vite": "^6.3.5",
     "vitest": "^3.1.2"
   }
 }
